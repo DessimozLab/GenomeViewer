@@ -3,7 +3,7 @@ import GenomeViewer from './GenomeViewer.vue'
 
 var settings = {
     'type_chromosome': 'ancestral',
-    'sorting_chromosome': 'number_genes',
+    'sorting_chromosome': 'size',
 }
 
 fetch('/oma_primates.json')

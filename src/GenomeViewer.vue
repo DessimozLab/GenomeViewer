@@ -2,7 +2,7 @@
 
   <SettingsUI/>
 
-  <ChromosomeViewer v-for="item in sortedData" :key="item.id" :datum="item" />
+  <ChromosomeViewer v-for="(item,index) in sortedData" :key="item.id" :datum="item" :settings="settings" @domainChanged="updateDomain(index, $event)"/>
 
 </template>
 
@@ -27,8 +27,9 @@ export default {
   data() {
     return {
       settings: {
-        'type_chromosome': 'ancestral',
+        'type_chromosome': 'extant',
         'sorting_chromosome': 'size',
+        'min_genes': 100,
       },
       render_data: this.jsonData
     }
@@ -38,21 +39,31 @@ export default {
     this.prepare_data()
   },
   mounted() {
-
+    // For development purposes, add a global keyup event listener to modify the settings.sorting_chromosome
+    window.addEventListener('keyup', this.handleKeyup);
+  },
+  beforeUnmount() {
+    window.removeEventListener('keyup', this.handleKeyup);
   },
   methods: {
+    // FACTORY METHODS
     process_extant(datum) {
       // Process the data for extant chromosomes
       datum.size_in_bp =  Math.max(...datum.nodes.map(d => d.end))
       datum.size_in_genes = datum.nodes.length
+      datum.domain = null
+      datum.unique_id = this.generateUniqueId()
+      datum.type = 'extant'
 
       return datum
     },
     process_ancestral(datum) {
 
-      if (datum['nodes'].length === 1) {
-        return datum
-      }
+      datum.domain = null
+      datum.size_in_bp =  datum['nodes'].length
+      datum.size_in_genes = datum['nodes'].length
+      datum.unique_id = this.generateUniqueId()
+      datum.type = 'ancestral'
 
       var look_up = {};
 
@@ -73,6 +84,7 @@ export default {
 
       // Sanity check
       var ends = [];
+
 
       Object.values(look_up).forEach(function(element) {
 
@@ -106,36 +118,47 @@ export default {
       while (processing) {
         current.start = previous === null ? 0 : previous.end + 1;
         current.end = current.start + 1;
+
+        if (previous != null && current.neighbors.length === 1) {
+          previous = current;
+          current = current.neighbors[0];
+          processing = false;
+        } else {
+          let tmp = current
+          current = current.neighbors[0] === previous ? current.neighbors[1] : current.neighbors[0];
+          previous = tmp;
+        }
+
         previous.edge = previous.edges[current];
       }
+
+      return datum
 
 
     },
     prepare_data() {
 
-      var data = []
+      const processFunction = this.settings.type_chromosome === 'extant' ? this.process_extant : this.process_ancestral;
+      this.render_data = Object.values(this.jsonData)
+          .filter(datum => datum.nodes.length > this.settings.min_genes)
+          .map(processFunction);
 
-      // Prepare the data for rendering
-      if (this.settings.type_chromosome === 'extant') {
-        for (var key in this.jsonData) {
-          data.push(this.process_extant(this.jsonData[key]))
-        }
-      } else if (this.settings.type_chromosome === 'ancestral') {
-
-        data = this.jsonData
-
-
-        /*for (var key_ in this.jsonData) {
-          console.log(this.jsonData[key_])
-          data.push(this.process_ancestral(this.jsonData[key_]))
-        }
-
-         */
-      } else {
-
-      this.render_data = data
-    }
-      },
+    },
+    // UTILS
+    generateUniqueId() {
+      return Date.now().toString(36) + Math.random().toString(36).substr(2, 9);
+    },
+    // MODEL SETTERS
+    updateDomain(index, newDomain) {
+      this.sortedData[index].domain = newDomain;
+    },
+    // MISC
+    handleKeyup(event) {
+      // modify the settings sorting_chromosome when pressed the key 's'
+      if (event.key === 's') {
+        this.settings.sorting_chromosome = this.settings.sorting_chromosome === 'size' ? 'number_genes' : 'size'
+      }
+    },
     configure_settings_user() {
       for(var key in this.user_settings) {
         var value = this.user_settings[key];
@@ -145,7 +168,7 @@ export default {
   },
   computed: {
     sortedData() {
-    // Sort jsonData by some criteria
+    // Sort jsonData by some criteria in descending order
     switch (this.settings.sorting_chromosome) {
       case 'size':
         return [...this.render_data].sort((a, b) => (a.size_in_bp > b.size_in_bp) ? -1 : 1);
