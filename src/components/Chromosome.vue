@@ -9,7 +9,6 @@
    </div>
 
      <svg ref="svg_overview" :width="parentWidth" :height="svgHeight" class="svg-element" >
-       <rect x="0" y="0" ></rect>
      </svg>
 
      <svg ref="svg_excerpt" :width="excerptWidth" :height="svgHeight"  style='display:none' class="svg-element">
@@ -17,8 +16,6 @@
 
  </div>
 
-  <br>
-  <br>
 </template>
 
 <script>
@@ -30,7 +27,8 @@ export default {
   name: 'ChromosomeViewer',
   props: {
     datum: Object,
-    settings: Object
+    settings: Object,
+    domain_max: Number
   },
   watch: {
     'datum.unique_id': {
@@ -74,12 +72,12 @@ export default {
 
       if (this.settings.type_chromosome == 'ancestral') {
         x = d3.scaleLinear()
-            .domain([0, 1000])
+            .domain([0, 2*this.domain_max])
             .range([0, this.parentWidth])
       }
       else{
         x = d3.scaleLinear()
-            .domain([0, 300000000])
+            .domain([0, this.domain_max])
             .range([0, this.parentWidth])
       }
 
@@ -93,9 +91,9 @@ export default {
           .attr('height', 50)
           .attr("fill", (d) => {
             if (this.datum.domain == null) {
-              return 'salmon'
+              return this.defaut_gene_color
             }
-            return this.datum.domain[0] <= d.end && d.start <= this.datum.domain[1] ? "steelblue" : 'salmon'
+            return this.datum.domain[0] <= d.end && d.start <= this.datum.domain[1] ? this.brushed_gene_color  : this.defaut_gene_color
       });
 
 
@@ -128,12 +126,12 @@ export default {
 
         if (selection === null) {
           that.$emit('domainChanged', null);
-          rectangles.attr("fill", 'salmon');
+          rectangles.attr("fill", that.defaut_gene_color);
         } else {
           const [x0, x1] = selection.map(x.invert);
           that.$emit('domainChanged', [x0, x1]);
           rectangles.attr("fill", (d) => {
-            return x0 <= d.end && d.start <= x1 ? "steelblue" : 'salmon'
+            return x0 <= d.end && d.start <= x1 ? that.brushed_gene_color : that.defaut_gene_color
           });
           that.render_excerpt();
         }
@@ -155,7 +153,6 @@ export default {
       }
 
       svg_excerpt.attr("transform", "translate(" + this.excerptWidth /2+ "," + 0 + ")")
-          .attr('stroke', 'black')
 
       var x_cerpt = d3.scaleLinear()
           .domain(domain)
@@ -184,7 +181,9 @@ export default {
       parentWidth: 400,
       excerptWidth: 200,
       name: '',
-      svgHeight: 80,
+      svgHeight: this.settings.svgHeight,
+      defaut_gene_color: 'salmon',
+      brushed_gene_color: 'steelblue',
     }
   },
   emits: ['domainChanged'],

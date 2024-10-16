@@ -2,7 +2,7 @@
 
   <SettingsUI/>
 
-  <ChromosomeViewer v-for="(item,index) in sortedData" :key="item.id" :datum="item" :settings="settings" @domainChanged="updateDomain(index, $event)"/>
+  <ChromosomeViewer v-for="(item,index) in sortedData" :key="item.id" :datum="item" :domain_max="domain_max" :settings="settings" @domainChanged="updateDomain(index, $event)"/>
 
 </template>
 
@@ -30,6 +30,7 @@ export default {
         'type_chromosome': 'extant',
         'sorting_chromosome': 'size',
         'min_genes': 100,
+        'svgHeight': 100,
       },
       render_data: this.jsonData
     }
@@ -144,14 +145,17 @@ export default {
           .map(processFunction);
 
     },
+
     // UTILS
     generateUniqueId() {
       return Date.now().toString(36) + Math.random().toString(36).substr(2, 9);
     },
+
     // MODEL SETTERS
     updateDomain(index, newDomain) {
       this.sortedData[index].domain = newDomain;
     },
+
     // MISC
     handleKeyup(event) {
       // modify the settings sorting_chromosome when pressed the key 's'
@@ -178,7 +182,18 @@ export default {
         return [...this.render_data].sort((a, b) => a.id - b.id);
 
     }
-  }
+  },
+    domain_max() {
+      switch (this.settings.type) {
+        case 'extant':
+          return Math.max(...this.sortedData.map(d => d.size_in_bp))
+        case 'ancestral':
+          return Math.max(...this.sortedData.map(d => d.size_in_genes))
+        default:
+          return Math.max(...this.sortedData.map(d => d.size_in_bp))
+
+      }
+    }
 }
 
 }
