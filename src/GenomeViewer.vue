@@ -1,8 +1,8 @@
 <template>
 
-  <SettingsUI/>
+  <SettingsUI @toggle-mode="toggleMode" @toggle-sorting="toggleSorting" @toggle-type="toggleType" :mode="settings.mode" :sorting="settings.sorting_chromosome" :type="settings.type_position"/>
 
-  <ChromosomeViewer v-for="(item,index) in sortedData" :key="item.id" :datum="item" :domain_max="domain_max" :settings="settings" @domainChanged="updateDomain(index, $event)"/>
+  <ChromosomeViewer v-for="(item,index) in sortedData" :key="item.id" :datum="item" :domain_max="domain_max" :settings="settings" @updateZoom="updateZoom(index, $event)" @domainChanged="updateDomain(index, $event)" @addSelectedRegions="addSelectedRegions(index, $event)" />
 
 </template>
 
@@ -13,6 +13,7 @@ import 'bootstrap'
 
 import SettingsUI from './components/Settings.vue'
 import ChromosomeViewer from './components/Chromosome.vue'
+import * as d3 from 'd3';
 
 export default {
   name: 'GenomeViewer',
@@ -22,7 +23,7 @@ export default {
   },
   props: {
     jsonData: Object,
-    user_settings: Object
+    user_settings: Object,
   },
   data() {
     return {
@@ -35,7 +36,10 @@ export default {
         'type_position': 'loci',
         'defaut_gene_color': 'lightgrey',
         'brushed_gene_color': 'salmon',
+        'mode': 'zoom',
       },
+      index_sorting: 0,
+      states_sorting:  ['size', 'number_genes', 'name'],
       render_data: this.jsonData
     }
   },
@@ -51,12 +55,24 @@ export default {
     window.removeEventListener('keyup', this.handleKeyup);
   },
   methods: {
+    toggleMode() {
+      this.settings.mode = this.settings.mode === 'zoom' ? 'brush' : 'zoom';
+    },
+    toggleSorting(){
+      this.index_sorting = ++this.index_sorting%this.states_sorting.length;
+      this.settings.sorting_chromosome  = this.states_sorting[this.index_sorting];
+    },
+    toggleType(){
+      this.settings.type_position = this.settings.type_position === 'loci' ? 'index' : 'loci'
+    },
     // FACTORY METHODS
     process_extant(datum) {
       // Process the data for extant chromosomes
       datum.size_in_bp =  Math.max(...datum.nodes.map(d => d.end))
       datum.size_in_genes = datum.nodes.length
       datum.domain = null
+      datum.selectedRegions = []
+      datum.currentZoom = d3.zoomIdentity
       datum.unique_id = this.generateUniqueId()
       datum.type = 'extant'
 
@@ -66,15 +82,26 @@ export default {
         return d
       })
 
+      if (!isNaN(datum.nodes[0]['chromosome']) || ['X', 'Y', 'MT'].includes(datum.nodes[0]['chromosome']) ){
+        datum.name = "Chromosome " + datum.nodes[0]['chromosome']
+      }
+      else{
+        datum.name =  datum.nodes[0]['chromosome']
+      }
+
       return datum
     },
     process_ancestral(datum) {
 
       datum.domain = null
+      datum.currentZoom = d3.zoomIdentity
+      datum.selectedRegions = []
       datum.size_in_bp =  datum['nodes'].length
       datum.size_in_genes = datum['nodes'].length
       datum.unique_id = this.generateUniqueId()
       datum.type = 'ancestral'
+      datum.name =  "Ancestral Chromosome"
+
 
       var look_up = {};
 
@@ -167,13 +194,15 @@ export default {
     updateDomain(index, newDomain) {
       this.sortedData[index].domain = newDomain;
     },
+    updateZoom(index, newzoom) {
+      this.sortedData[index].currentZoom =  newzoom;
+    },
+    addSelectedRegions(index, newSelectedRegions) {
+      this.sortedData[index].selectedRegions.push(newSelectedRegions);
+    },
 
     // MISC
     handleKeyup(event) {
-      // modify the settings sorting_chromosome when pressed the key 's'
-      if (event.key === 's') {
-        this.settings.sorting_chromosome = this.settings.sorting_chromosome === 'size' ? 'number_genes' : 'size'
-      }
 
       // modify the settings type_position when pressed the key 't'
       if (event.key === 't') {
@@ -195,6 +224,8 @@ export default {
         return [...this.render_data].sort((a, b) => (a.size_in_bp > b.size_in_bp) ? -1 : 1);
       case 'number_genes':
         return [...this.render_data].sort((a, b) => (a.size_in_genes > b.size_in_genes) ? -1 : 1);
+      case 'name':
+        return [...this.render_data].sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
       default:
         return [...this.render_data].sort((a, b) => a.id - b.id);
 

@@ -46,6 +46,14 @@ export default {
       },
       deep: true
     },
+    'settings.mode': {
+      handler: function () {
+        this.render_overview()
+        this.render_excerpt()
+
+      },
+      deep: true
+    },
   },
   computed: {
     chromosome_name(){
@@ -69,6 +77,9 @@ export default {
     },
   },
   methods: {
+    isInSelectedRegion(d) {
+      return this.datum.selectedRegions.some(([x0, x1]) => this.d_start(d) >= x0 && this.d_end(d) <= x1);
+    },
     pretty_locus(l){
       return d3.format(",.9r")(parseInt(l))
     },
@@ -135,55 +146,13 @@ export default {
           );
 
 
-
-
-
-
-
-    /*
-      var brushed = (event) => {
-        if (event.sourceEvent == null){
-          return
-        }
-
-        const selection = event.selection;
-
-        if (selection === null) {
-          this.$emit('domainChanged', null);
-          rectangles.attr("fill", this.settings.defaut_gene_color);
-        } else {
-          const [x0, x1] = selection.map(x.invert);
-          this.$emit('domainChanged', [x0, x1]);
-          rectangles.attr("fill", (d) => {
-            return x0 <= this.d_end(d) && this.d_start(d) <= x1 ? this.settings.brushed_gene_color : this.settings.defaut_gene_color
-          });
-          this.render_excerpt();
-        }
-      }
-
-      var brush = d3.brushX()
-          .extent([[0, 0], [this.parentWidth, 50]])
-          .on("start brush end", brushed)
-
-      this.gBrush = svg_overview.append("g")
-          .call(brush)
-
-      if (this.datum.domain !== null) {
-        var start = x(this.datum.domain[0]);
-        var end = x(this.datum.domain[1]);
-        this.gBrush.call(brush.move, [start, end]);
-      }
-
-      // Define the zoomed function
-*/
-
     },
     set_anchor_position(d){
       var [min, max] = this.get_min_max()
       var scale = d3.scaleLinear().domain([0, this.domain_max]).range([0, this.parentWidth]);
       var minPixel = scale(min);
       var maxPixel = scale(max);
-      var threshold = 75; // Set a threshold for the minimum pixel distance to avoid overlap
+      var threshold = 150; // Set a threshold for the minimum pixel distance to avoid overlap
 
       if (d === min && minPixel < threshold/2) {
         return 'start';}
@@ -226,13 +195,13 @@ export default {
                   .attr('y', 0)
                   .attr('width', d => scale(this.d_end(d)) - scale(this.d_start(d)))
                   .attr('height', this.settings.svgHeight)
-                  .attr('fill', 'lightgrey'),
+                  .attr('fill', d => this.isInSelectedRegion(d) ? 'olive' : 'lightgrey'),
               update => update // For updated data, update the existing rectangles
                   .attr('x', d => scale(this.d_start(d)))
                   .attr('y', 0)
                   .attr('width', d => scale(this.d_end(d)) - scale(this.d_start(d)))
                   .attr('height', this.settings.svgHeight)
-                  .attr('fill', 'lightgrey'),
+                  .attr('fill', d => this.isInSelectedRegion(d) ? 'olive' : 'lightgrey'),
               exit => exit.remove() // For outgoing data, remove the rectangles
           );
 
@@ -245,6 +214,7 @@ export default {
         // Update the rectangles with the new scale
         const [x0, x1] = newScale.domain();
         this.$emit('domainChanged', [x0, x1]);
+        this.$emit('updateZoom', event.transform);
 
         this.render_overview()
 
@@ -260,8 +230,58 @@ export default {
           .translateExtent([[scale(0), 0], [scale(this.domain_max), 0]]) // This controls the panning limit.
           .on('zoom', zoomed); // This sets the function to be called when a zoom event occurs.
 
-      // Apply the zoom behavior to the SVG
       svg_excerpt.call(zoom);
+
+      if (this.datum.currentZoom) {
+        svg_excerpt.call(zoom.transform, this.datum.currentZoom);
+      }
+
+
+     var brushed = (event) => {
+
+       if (event.sourceEvent == null){
+         return
+       }
+
+       const selection = event.selection;
+
+       if (selection === null) {
+          console.log('Brush cleared')
+       }
+       else {
+
+
+         var newScale = this.datum.currentZoom.rescaleX(scale);
+
+
+
+         const [x0, x1] = selection.map(newScale.invert);
+
+         this.$emit('addSelectedRegions', [x0, x1]);
+         this.render_excerpt();
+         this.render_overview();
+       }
+
+       svg_excerpt.call(brush.move, null);
+
+     }
+
+     var brush = d3.brushX()
+         .extent([[0, 0], [this.parentWidth, this.settings.svgHeight]])
+         .on("end", brushed)
+
+
+      if (this.settings.mode === 'zoom') {
+        // Remove the brush behavior and apply the zoom behavior
+        svg_excerpt.on('.brush', null);
+        svg_excerpt.call(zoom);
+      } else {
+        // Remove the zoom behavior and apply the brush behavior
+        svg_excerpt.on('.zoom', null);
+        svg_excerpt.call(brush);
+      }
+
+
 
 
     },
@@ -277,7 +297,7 @@ export default {
       parentWidth: null
     }
   },
-  emits: ['domainChanged']
+  emits: ['domainChanged', 'updateZoom', 'addSelectedRegions']
 }
 </script>
 
@@ -308,5 +328,8 @@ export default {
   color: rgb(99,99,102);
 }
 
+.brush .selection {
+  display: none !important;
+}
 
 </style>
