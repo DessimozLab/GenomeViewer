@@ -31,7 +31,7 @@ export default {
         'sorting_chromosome': 'size',
         'min_genes': 100,
         'svgHeight': 100,
-        'svgHeight_overview': 40,
+        'svgHeight_overview': 60,
         'type_position': 'loci',
         'defaut_gene_color': 'lightgrey',
         'brushed_gene_color': 'salmon',

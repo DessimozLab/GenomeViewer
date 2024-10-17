@@ -59,7 +59,7 @@ export default {
       if (this.datum.type === 'ancestral') {
         return this.datum.nodes.length + " ancestral genes "
       }
-      return this.datum.nodes.length + " genes - " + d3.format(",.9r")(parseInt(this.datum.size_in_bp))  + " bp"
+      return this.datum.nodes.length + " genes - " + this.pretty_locus(this.datum.size_in_bp)  + " bp"
     },
     d_start(){
       return this.settings.type_position === 'loci' ? d => d.start : d => d.index
@@ -69,6 +69,9 @@ export default {
     },
   },
   methods: {
+    pretty_locus(l){
+      return d3.format(",.9r")(parseInt(l))
+    },
     render_overview() {
 
       const scale = d3.scaleLinear().domain([0, this.domain_max]).range([0, this.parentWidth]);
@@ -82,7 +85,7 @@ export default {
                   .attr('x', d => scale(this.d_start(d)))
                   .attr('y', 0)
                   .attr('width', d => scale(this.d_end(d)) - scale(this.d_start(d)))
-                  .attr('height', this.settings.svgHeight_overview)
+                  .attr('height', this.settings.svgHeight_overview-20)
                   .attr("fill", this.color_gene_overview),
               update => update // For updated data, update the existing rectangles
                   .attr('x', d => scale(this.d_start(d)))
@@ -92,6 +95,7 @@ export default {
               exit => exit.remove() // For outgoing data, remove the rectangles
           );
 
+
       svg_overview.selectAll('line')
           .data( this.get_min_max() ) // Bind the data to the rectangles
           .join(
@@ -99,18 +103,37 @@ export default {
           .attr('x1', d => scale(d))
           .attr('y1', 0)
           .attr('x2', d => scale(d))
-          .attr('y2', this.settings.svgHeight_overview)
+          .attr('y2', this.settings.svgHeight_overview-20)
           .attr('stroke', 'grey')
           .attr('stroke-width', 2),
               update => update // For updated data, update the existing rectangles
                   .attr('x1', d => scale(d))
                   .attr('y1', 0)
                   .attr('x2', d => scale(d))
-                  .attr('y2', this.settings.svgHeight_overview)
+                  .attr('y2', this.settings.svgHeight_overview-20)
                   .attr('stroke', 'grey')
                   .attr('stroke-width', 2),
               exit => exit.remove() // For outgoing data, remove the rectangles
           );
+
+      svg_overview.selectAll('text')
+          .data( this.get_min_max() ) // Bind the data to the rectangles
+          .join(
+              enter => enter.append('text')
+                  .attr('x', d => scale(d))
+                  .attr('y', this.settings.svgHeight_overview - 10) // Position the text 20 pixels below the line
+                  .text(d =>  this.pretty_locus(d))// Set the text to the inverted scale value of max
+                  .attr('font-size', '10px')
+                  .attr('text-anchor', d => this.set_anchor_position(d)),
+              update => update // For updated data, update the existing rectangles
+                  .attr('x', d => scale(d))
+                  .attr('y', this.settings.svgHeight_overview - 10) // Position the text 20 pixels below the line
+                  .text(d =>  this.pretty_locus(d))// Set the text to the inverted scale value of max
+                  .attr('font-size', '10px')
+                  .attr('text-anchor', d => this.set_anchor_position(d)),
+              exit => exit.remove() // For outgoing data, remove the rectangles
+          );
+
 
 
 
@@ -154,6 +177,26 @@ export default {
       // Define the zoomed function
 */
 
+    },
+    set_anchor_position(d){
+      var [min, max] = this.get_min_max()
+      var scale = d3.scaleLinear().domain([0, this.domain_max]).range([0, this.parentWidth]);
+      var minPixel = scale(min);
+      var maxPixel = scale(max);
+      var threshold = 75; // Set a threshold for the minimum pixel distance to avoid overlap
+
+      if (d === min && minPixel < threshold/2) {
+        return 'start';}
+
+        if (d === max && this.parentWidth - maxPixel < threshold) {
+        return 'end';
+      }
+      if (Math.abs(maxPixel - minPixel) < threshold/2) {
+        // If min and max are too close to each other, reverse the anchor position
+        return d === min ? 'end' : 'start';
+      } else {
+        return d === min ? 'middle' : 'middle';
+      }
     },
     get_min_max(){
       var min = this.datum.domain !== null ? this.datum.domain[0] : 0
