@@ -31,6 +31,10 @@ export default {
         'sorting_chromosome': 'size',
         'min_genes': 100,
         'svgHeight': 100,
+        'svgHeight_overview': 40,
+        'type_position': 'loci',
+        'defaut_gene_color': 'lightgrey',
+        'brushed_gene_color': 'salmon',
       },
       render_data: this.jsonData
     }
@@ -55,6 +59,12 @@ export default {
       datum.domain = null
       datum.unique_id = this.generateUniqueId()
       datum.type = 'extant'
+
+      // Add index to the nodes based on start asc sorting
+      datum.nodes = datum.nodes.sort((a, b) => a.start - b.start).map((d, i) => {
+        d.index = i
+        return d
+      })
 
       return datum
     },
@@ -118,7 +128,9 @@ export default {
 
       while (processing) {
         current.start = previous === null ? 0 : previous.end + 1;
-        current.end = current.start + 1;
+        current.index = previous === null ? 0 : previous.index + 1;
+        current.end = current.start + Math.random();
+
 
         if (previous != null && current.neighbors.length === 1) {
           previous = current;
@@ -162,6 +174,11 @@ export default {
       if (event.key === 's') {
         this.settings.sorting_chromosome = this.settings.sorting_chromosome === 'size' ? 'number_genes' : 'size'
       }
+
+      // modify the settings type_position when pressed the key 't'
+      if (event.key === 't') {
+        this.settings.type_position = this.settings.type_position === 'loci' ? 'index' : 'loci'
+      }
     },
     configure_settings_user() {
       for(var key in this.user_settings) {
@@ -184,15 +201,8 @@ export default {
     }
   },
     domain_max() {
-      switch (this.settings.type) {
-        case 'extant':
-          return Math.max(...this.sortedData.map(d => d.size_in_bp))
-        case 'ancestral':
-          return Math.max(...this.sortedData.map(d => d.size_in_genes))
-        default:
-          return Math.max(...this.sortedData.map(d => d.size_in_bp))
-
-      }
+      const acc = this.settings.type_position === 'index' ? 'size_in_genes' : 'size_in_bp'
+      return Math.max(...this.sortedData.map(d => d[acc]))
     }
 }
 
