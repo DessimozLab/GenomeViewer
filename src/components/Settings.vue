@@ -36,7 +36,52 @@
 
   </button>
 
-</div>
+   <div class="vr" style="margin-right: 24px;"><p class="vertical-text" >General</p></div>
+
+   <div class="dropdown">
+     <button id='button_color_overview' class=" btn btn-outline-dark me-2" type="button"  data-bs-toggle="dropdown" aria-expanded="false">
+       <i class="bi bi-paint-bucket"></i>
+       <span class="small-text" style="display: block;">Gene <i class="bi bi-caret-down"></i> </span>
+     </button>
+     <ul class="dropdown-menu" aria-labelledby="button_color_overview">
+       <li v-for="(option, index) in settings.states_color_genes" :key="index" class="dropdown-item">
+
+         <input type="radio" :id="'colorOption' + index" v-model="selectedColorOption" :value="option">
+
+         <label :for="'colorOption' + index"> &nbsp; {{ option == null? ' Default' : ' ' + option }}</label>
+       </li>
+     </ul>
+   </div>
+
+   <button id='button_height_overview'  style="padding: 6px" class="btn btn-outline-dark  me-2">
+     <i class="bi bi-arrows-vertical"></i>
+     <span class="small-text" style="display: block;">{{ colorAccessor_overview === null ? 'Default' : colorAccessor_overview  }}</span>
+   </button>
+
+   <div class="vr" style="margin-right: 24px;"><p class="vertical-text">Overview</p></div>
+
+
+
+   <button id='button_color_excerpt' style="padding: 6px" class="btn btn-outline-dark  me-2">
+
+     <i class="bi bi-paint-bucket"></i>
+     <span class="small-text" style="display: block;">{{ colorAccessor_overview === null ? 'Default' : colorAccessor_overview  }}</span>
+
+   </button>
+
+   <button id='button_height_excerpt'  style="padding: 6px" class="btn btn-outline-dark  me-2">
+     <i class="bi bi-arrows-vertical"></i>
+     <span class="small-text" style="display: block;">{{ colorAccessor_overview === null ? 'Default' : colorAccessor_overview  }}</span>
+   </button>
+
+   <div class="vr" style="margin-right: 24px;"><p class="vertical-text">Excerpt</p></div>
+
+
+
+
+
+
+ </div>
 
 <div id="toggleDiv" class="collapse text-center" style="margin:24px; padding: 50px; border: #dddddd 1px solid">
   <b>Place holder for filtering widget.</b>
@@ -56,8 +101,30 @@ export default {
     sorting: String,
     type: String,
     hide: Boolean,
+    colorAccessor_overview: String,
+    settings: Object,
   },
-  emits: ['toggle-mode', 'toggle-sorting', 'toggle-type', 'toggle-hide']
+  data() {
+    return {
+      dropdownVisible: false,
+      selectedColorOption: null
+    };
+  },
+  methods: {
+    toggleDropdown() {
+      this.dropdownVisible = !this.dropdownVisible;
+    },
+    toggleColorOverview() {
+      console.log(this.selectedColorOption)
+      this.$emit('update-color-overview', this.selectedColorOption);
+    }
+  },
+  watch: {
+    selectedColorOption() {
+      this.toggleColorOverview();
+    }
+  },
+  emits: ['toggle-mode', 'toggle-sorting', 'toggle-type', 'toggle-hide', "toggle-color_overview",'update-color-overview'],
 }
 </script>
 
@@ -86,4 +153,21 @@ a {
   background-color: white;
   padding: 12px;
 }
+.vertical-text {
+  transform: rotate(-90deg);
+  font-size: xx-small;
+  display: flex;
+  margin-left: 10px;
+  justify-content: right;
+
+}
+/* Add styles for the dropdown menu */
+.dropdown-menu {
+  position: absolute;
+  background-color: white;
+  border: 1px solid #ccc;
+  padding: 10px;
+  z-index: 1000;
+}
+
 </style>

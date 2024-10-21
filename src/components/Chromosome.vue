@@ -8,12 +8,16 @@
      <p id="chromosome_genes_desc">{{chromosome_genes_desc}}</p>
    </div>
 
-
    <svg ref="svg_overview" :width="CurrentWidth" style="border: 1px lightgray solid; border-radius: 18px;" :height="settings.svgHeight_overview" class="svg-element" ></svg>
 
    <svg ref="svg_mapper" :width="parentWidth" :height="settings.svgHeight_mapper" class="svg-element" ></svg>
 
    <svg ref="svg_excerpt" :width="parentWidth" :height="settings.svgHeight" class="svg-element"></svg>
+
+   <div v-if="menuVisible" :style="{ top: menuPosition.y + 'px', left: menuPosition.x + 'px' }" class="menu">
+     <div v-html="menuContent"></div>
+     <button style='' @click="hideMenu">Close</button>
+   </div>
 
 
  </div>
@@ -29,7 +33,7 @@ export default {
   props: {
     datum: Object,
     settings: Object,
-    domain_max: Number
+    domain_max: Number,
   },
   watch: {
     'datum.unique_id': {
@@ -65,6 +69,15 @@ export default {
       },
       deep: true
     },
+    'settings.colorAccessor_overview': {
+    handler: function () {
+      this.render_overview()
+    },
+    deep: true
+  },
+
+
+
   },
   computed: {
     domain_max_current(){
@@ -92,6 +105,19 @@ export default {
     },
   },
   methods: {
+    showMenu(event, d) {
+      this.menuPosition = { x: event.clientX, y: event.clientY };
+      this.menuContent = `Gene: ${d.id}`;
+
+      this.settings.states_color_genes.forEach((state, i) => {
+        this.menuContent += `<br><span style="color: ${this.color_scale(d.data[state])}">State ${i + 1}: ${d.data[state]}</span>`;
+      });
+
+      this.menuVisible = true;
+    },
+    hideMenu() {
+      this.menuVisible = false;
+    },
     toggleSvgDisplay() {
       const svgExcerpt = this.$refs.svg_excerpt;
       const svgMapper = this.$refs.svg_mapper;
@@ -285,10 +311,18 @@ export default {
     color_gene_overview(d){
 
       var [min, max] = this.get_min_max()
+      if  (this.d_start(d) >= min && this.d_end(d) <= max) {
+        return this.settings.brushed_gene_color
+      }
 
-      // define position min and max based on the domain if create or not
-
-      return  this.d_start(d) >= min && this.d_end(d) <= max ? this.settings.brushed_gene_color : this.settings.defaut_gene_color
+      switch (this.settings.colorAccessor_overview) {
+        case 'datum1':
+          return this.color_scale_overview(d.data.datum1)
+        case 'datum2':
+          return this.color_scale_overview(d.data.datum2)
+        default:
+          return this.settings.defaut_gene_color
+      }
     },
     render_excerpt() {
 
@@ -304,13 +338,15 @@ export default {
                   .attr('y', this.margin_top_svg)
                   .attr('width', d => scale(this.d_end(d)) - scale(this.d_start(d)))
                   .attr('height', this.settings.svgHeight)
-                  .attr('fill', d => this.isInSelectedRegion(d) ? 'olive' : this.color_scale(d.color)),
+                  .on('click', (event, d) => this.showMenu(event, d))
+                  .attr('fill', d => this.isInSelectedRegion(d) ? 'olive' : this.color_scale(d.data.datum1)),
               update => update // For updated data, update the existing rectangles
                   .attr('x', d => scale(this.d_start(d)))
                   .attr('y', this.margin_top_svg)
                   .attr('width', d => scale(this.d_end(d)) - scale(this.d_start(d)))
                   .attr('height', this.settings.svgHeight)
-                  .attr('fill', d => this.isInSelectedRegion(d) ? 'olive' : this.color_scale(d.color)),
+                  .on('click', (event, d) => this.showMenu(event, d))
+                  .attr('fill', d => this.isInSelectedRegion(d) ? 'olive' : this.color_scale(d.data.datum1)),
               exit => exit.remove() // For outgoing data, remove the rectangles
           );
 
@@ -430,8 +466,12 @@ export default {
     return {
       CurrentWidth: null,
       parentWidth: null,
+      color_scale_overview: d3.scaleLinear([-1,0, 1],['#ffafcc', '#bde0fe', '#a2d2ff']),
       color_scale: d3.scaleLinear([-1,0, 1],['#ffafcc', '#bde0fe', '#a2d2ff']),
       margin_top_svg: 0,
+      menuVisible: false,
+      menuPosition: { x: 0, y: 0 },
+      menuContent: ''
     }
   },
   emits: ['domainChanged', 'updateZoom', 'addSelectedRegions']
@@ -467,6 +507,14 @@ display: block;
 
 .brush .selection {
   display: none !important;
+}
+
+.menu {
+  position: absolute;
+  background-color: white;
+  border: 1px solid #ccc;
+  padding: 10px;
+  z-index: 1000;
 }
 
 </style>
