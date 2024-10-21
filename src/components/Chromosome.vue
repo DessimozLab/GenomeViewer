@@ -8,11 +8,13 @@
      <p id="chromosome_genes_desc">{{chromosome_genes_desc}}</p>
    </div>
 
-   <svg ref="svg_excerpt" :width="parentWidth" :height="settings.svgHeight" class="svg-element">
-     </svg>
 
-   <svg ref="svg_overview" :width="parentWidth" :height="settings.svgHeight_overview" class="svg-element" >
-   </svg>
+   <svg ref="svg_overview" :width="CurrentWidth" style="border: 1px lightgray solid; border-radius: 18px;" :height="settings.svgHeight_overview" class="svg-element" ></svg>
+
+   <svg ref="svg_mapper" :width="parentWidth" :height="settings.svgHeight_mapper" class="svg-element" ></svg>
+
+   <svg ref="svg_excerpt" :width="parentWidth" :height="settings.svgHeight" class="svg-element"></svg>
+
 
  </div>
 
@@ -33,6 +35,7 @@ export default {
     'datum.unique_id': {
       handler: function () {
         this.render_overview()
+        this.render_mapper()
         this.render_excerpt()
 
       },
@@ -41,6 +44,7 @@ export default {
     'settings': {
       handler: function () {
         this.render_overview()
+        this.render_mapper()
         this.render_excerpt()
 
       },
@@ -49,13 +53,24 @@ export default {
     'settings.mode': {
       handler: function () {
         this.render_overview()
+        this.render_mapper()
         this.render_excerpt()
 
       },
       deep: true
     },
+    'settings.hide': {
+      handler: function () {
+        this.toggleSvgDisplay()
+      },
+      deep: true
+    },
   },
   computed: {
+    domain_max_current(){
+      const acc = this.settings.type_position === 'index' ? 'index' : 'start'
+      return Math.max(...this.datum.nodes.map(d => d[acc]))
+    },
     chromosome_name(){
       if (this.datum.type === 'ancestral') {
         return "Ancestral Chromosome"
@@ -77,15 +92,121 @@ export default {
     },
   },
   methods: {
+    toggleSvgDisplay() {
+      const svgExcerpt = this.$refs.svg_excerpt;
+      const svgMapper = this.$refs.svg_mapper;
+
+      if (this.settings.hide) {
+        svgExcerpt.style.display = 'none';
+        svgMapper.style.display = 'none';
+        return;
+      }
+      else {
+        svgExcerpt.style.display = 'block';
+        svgMapper.style.display = 'block';
+      }
+    },
+    handleKeyup(event) {
+
+      // modify the settings type_position when pressed the key 't'
+      if (event.key === 'e') {
+        this.toggleSvgDisplay();
+      }
+    },
     isInSelectedRegion(d) {
       return this.datum.selectedRegions.some(([x0, x1]) => this.d_start(d) >= x0 && this.d_end(d) <= x1);
     },
     pretty_locus(l){
       return d3.format(",.9r")(parseInt(l))
     },
+    render_mapper(){
+
+      const scale_overview = d3.scaleLinear().domain([0, this.domain_max_current]).range([0, this.CurrentWidth-2]);
+
+      var svg_mapper = d3.select(this.$refs.svg_mapper)
+
+
+      svg_mapper.selectAll('.line_top')
+          .data( this.get_min_max() ) // Bind the data to the rectangles
+          .join(
+              enter => enter.append('line')
+                  .attr('class', 'line_top')
+                  .attr('x1', (d) => scale_overview(d) + 1)
+                  .attr('y1', 0)
+                  .attr('x2', (d) => scale_overview(d) + 1)
+                  .attr('y2', 10)
+                  .attr('stroke', 'grey')
+                  .attr('stroke-width', 2),
+              update => update // For updated data, update the existing rectangles
+                  .attr('x1', (d) => scale_overview(d) + 1)
+                  .attr('x2', (d) => scale_overview(d) + 1)
+                  .attr('stroke', 'grey')
+                  .attr('stroke-width', 2),
+              exit => exit.remove() // For outgoing data, remove the rectangles
+          );
+
+      svg_mapper.selectAll('.line_bottom')
+          .data( this.get_min_max() ) // Bind the data to the rectangles
+          .join(
+          enter => enter.append('line')
+              .attr('class', 'line_bottom')
+              .attr('x1',(d) => scale_overview(d) + 1)
+              .attr('y1', 22)
+              .attr('x2', (d) => scale_overview(d) + 1)
+              .attr('y2', 32)
+              .attr('stroke', 'grey')
+              .attr('stroke-width', 2),
+          update => update // For updated data, update the existing rectangles
+              .attr('x1', (d) => scale_overview(d) + 1)
+              .attr('x2', (d) => scale_overview(d) + 1)
+              .attr('stroke', 'grey')
+              .attr('stroke-width', 2),
+          exit => exit.remove() // For outgoing data, remove the rectangles
+      );
+
+
+      svg_mapper.selectAll('text')
+     .data( this.get_min_max() ) // Bind the data to the rectangles
+     .join(
+         enter => enter.append('text')
+             .attr('x', d => scale_overview(d))
+             .attr('y', 20) // Position the text 20 pixels below the line
+             .text(d =>  this.pretty_locus(d))// Set the text to the inverted scale value of max
+             .attr('font-size', '10px')
+             .attr('text-anchor', d => this.set_anchor_position(d)),
+         update => update // For updated data, update the existing rectangles
+             .attr('x', d => scale_overview(d))
+             .attr('y',  20) // Position the text 20 pixels below the line
+             .text(d =>  this.pretty_locus(d))// Set the text to the inverted scale value of max
+             .attr('font-size', '10px')
+             .attr('text-anchor', d => this.set_anchor_position(d)),
+         exit => exit.remove() // For outgoing data, remove the rectangles
+     );
+
+
+      svg_mapper.selectAll('.line_diag')
+          .data( this.get_min_max() ) // Bind the data to the rectangles
+          .join(
+              enter => enter.append('line')
+                  .attr('class', 'line_diag')
+                  .attr('x1', (d,i) => scale_overview(d) + (i === 0 ? 1 : 1))
+                  .attr('y1', 32)
+                  .attr('x2', (d,i) => i === 0 ? 1 : this.parentWidth-1)
+                  .attr('y2', 42)
+                  .attr('stroke', 'grey')
+                  .attr('stroke-width', 2),
+              update => update // For updated data, update the existing rectangles
+                  .attr('x1', (d,i) => scale_overview(d) + (i === 0 ? 1 : 1))
+                  .attr('stroke', 'grey')
+                  .attr('stroke-width', 2),
+              exit => exit.remove() // For outgoing data, remove the rectangles
+          );
+
+
+    },
     render_overview() {
 
-      const scale = d3.scaleLinear().domain([0, this.domain_max]).range([0, this.parentWidth]);
+      const scale = d3.scaleLinear().domain([0, this.domain_max_current]).range([0, this.CurrentWidth]);
 
       var svg_overview = d3.select(this.$refs.svg_overview)
 
@@ -96,7 +217,7 @@ export default {
                   .attr('x', d => scale(this.d_start(d)))
                   .attr('y', 0)
                   .attr('width', d => scale(this.d_end(d)) - scale(this.d_start(d)))
-                  .attr('height', this.settings.svgHeight_overview-20)
+                  .attr('height', this.settings.svgHeight_overview)
                   .attr("fill", this.color_gene_overview),
               update => update // For updated data, update the existing rectangles
                   .attr('x', d => scale(this.d_start(d)))
@@ -107,49 +228,37 @@ export default {
           );
 
 
+      const scaleline = d3.scaleLinear().domain([0, this.domain_max_current]).range([0, this.CurrentWidth-2]);
+
+
       svg_overview.selectAll('line')
           .data( this.get_min_max() ) // Bind the data to the rectangles
           .join(
               enter => enter.append('line')
-          .attr('x1', d => scale(d))
+          .attr('x1', d => scaleline(d))
           .attr('y1', 0)
-          .attr('x2', d => scale(d))
-          .attr('y2', this.settings.svgHeight_overview-20)
+          .attr('x2', d => scaleline(d))
+          .attr('y2', this.settings.svgHeight_overview)
           .attr('stroke', 'grey')
           .attr('stroke-width', 2),
               update => update // For updated data, update the existing rectangles
-                  .attr('x1', d => scale(d))
+                  .attr('x1', d => scaleline(d))
                   .attr('y1', 0)
-                  .attr('x2', d => scale(d))
-                  .attr('y2', this.settings.svgHeight_overview-20)
+                  .attr('x2', d => scaleline(d))
+                  .attr('y2', this.settings.svgHeight_overview)
                   .attr('stroke', 'grey')
                   .attr('stroke-width', 2),
               exit => exit.remove() // For outgoing data, remove the rectangles
           );
 
-      svg_overview.selectAll('text')
-          .data( this.get_min_max() ) // Bind the data to the rectangles
-          .join(
-              enter => enter.append('text')
-                  .attr('x', d => scale(d))
-                  .attr('y', this.settings.svgHeight_overview - 10) // Position the text 20 pixels below the line
-                  .text(d =>  this.pretty_locus(d))// Set the text to the inverted scale value of max
-                  .attr('font-size', '10px')
-                  .attr('text-anchor', d => this.set_anchor_position(d)),
-              update => update // For updated data, update the existing rectangles
-                  .attr('x', d => scale(d))
-                  .attr('y', this.settings.svgHeight_overview - 10) // Position the text 20 pixels below the line
-                  .text(d =>  this.pretty_locus(d))// Set the text to the inverted scale value of max
-                  .attr('font-size', '10px')
-                  .attr('text-anchor', d => this.set_anchor_position(d)),
-              exit => exit.remove() // For outgoing data, remove the rectangles
-          );
+
+
 
 
     },
     set_anchor_position(d){
       var [min, max] = this.get_min_max()
-      var scale = d3.scaleLinear().domain([0, this.domain_max]).range([0, this.parentWidth]);
+      var scale = d3.scaleLinear().domain([0, this.domain_max]).range([0, this.CurrentWidth]);
       var minPixel = scale(min);
       var maxPixel = scale(max);
       var threshold = 150; // Set a threshold for the minimum pixel distance to avoid overlap
@@ -157,7 +266,7 @@ export default {
       if (d === min && minPixel < threshold/2) {
         return 'start';}
 
-        if (d === max && this.parentWidth - maxPixel < threshold) {
+        if (d === max && this.CurrentWidth - maxPixel < threshold) {
         return 'end';
       }
       if (Math.abs(maxPixel - minPixel) < threshold/2) {
@@ -183,7 +292,7 @@ export default {
     },
     render_excerpt() {
 
-      const scale = d3.scaleLinear().domain([0, this.domain_max]).range([0, this.parentWidth]);
+      const scale = d3.scaleLinear().domain([0, this.domain_max_current]).range([0, this.parentWidth]);
 
       var svg_excerpt = d3.select(this.$refs.svg_excerpt)
 
@@ -192,18 +301,34 @@ export default {
           .join(
               enter => enter.append('rect') // For new data, append a new rectangle
                   .attr('x', d => scale(this.d_start(d)))
-                  .attr('y', 0)
+                  .attr('y', this.margin_top_svg)
                   .attr('width', d => scale(this.d_end(d)) - scale(this.d_start(d)))
                   .attr('height', this.settings.svgHeight)
-                  .attr('fill', d => this.isInSelectedRegion(d) ? 'olive' : 'lightgrey'),
+                  .attr('fill', d => this.isInSelectedRegion(d) ? 'olive' : this.color_scale(d.color)),
               update => update // For updated data, update the existing rectangles
                   .attr('x', d => scale(this.d_start(d)))
-                  .attr('y', 0)
+                  .attr('y', this.margin_top_svg)
                   .attr('width', d => scale(this.d_end(d)) - scale(this.d_start(d)))
                   .attr('height', this.settings.svgHeight)
-                  .attr('fill', d => this.isInSelectedRegion(d) ? 'olive' : 'lightgrey'),
+                  .attr('fill', d => this.isInSelectedRegion(d) ? 'olive' : this.color_scale(d.color)),
               exit => exit.remove() // For outgoing data, remove the rectangles
           );
+
+
+      svg_excerpt.selectAll('.line_extend')
+          .data( this.get_min_max() ) // Bind the data to the rectangles
+          .join(
+              enter => enter.append('line')
+                  .attr('class', 'line_diag')
+                  .attr('x1', (d,i) => i === 0 ? 1 : this.parentWidth -1)
+                  .attr('y1', 0)
+                  .attr('x2', (d,i) => i === 0 ? 1 : this.parentWidth -1 )
+                  .attr('y2', 20)
+                  .attr('stroke', 'grey')
+                  .attr('stroke-width', 2),
+          );
+
+
 
 
       // Define the zoomed function
@@ -217,6 +342,7 @@ export default {
         this.$emit('updateZoom', event.transform);
 
         this.render_overview()
+        this.render_mapper()
 
         svg_excerpt.selectAll('rect')
             .attr('x', d => newScale(this.d_start(d)))
@@ -259,6 +385,7 @@ export default {
 
          this.$emit('addSelectedRegions', [x0, x1]);
          this.render_excerpt();
+         this.render_mapper()
          this.render_overview();
        }
 
@@ -267,7 +394,7 @@ export default {
      }
 
      var brush = d3.brushX()
-         .extent([[0, 0], [this.parentWidth, this.settings.svgHeight]])
+         .extent([[0, 0], [this.CurrentWidth, this.settings.svgHeight]])
          .on("end", brushed)
 
 
@@ -285,16 +412,26 @@ export default {
 
 
     },
+    get_parentWidth(){
+      return (this.$refs['interface_chr_small_container'].offsetWidth * (this.domain_max_current/this.domain_max)) - (window.innerWidth * 0.04);
+    },
   },
   mounted() {
+    window.addEventListener('keyup', this.handleKeyup);
     this.parentWidth = this.$refs['interface_chr_small_container'].offsetWidth - (window.innerWidth * 0.04);
+    this.CurrentWidth = this.get_parentWidth();
+
     this.render_excerpt();
-    this.render_overview()
+    this.render_mapper();
+    this.render_overview();
 
   },
   data() {
     return {
-      parentWidth: null
+      CurrentWidth: null,
+      parentWidth: null,
+      color_scale: d3.scaleLinear([-1,0, 1],['#ffafcc', '#bde0fe', '#a2d2ff']),
+      margin_top_svg: 0,
     }
   },
   emits: ['domainChanged', 'updateZoom', 'addSelectedRegions']
@@ -304,7 +441,7 @@ export default {
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
 .svg-element {
-  margin-bottom: 1px;
+display: block;
 }
 
 #interface_chr_small_container {

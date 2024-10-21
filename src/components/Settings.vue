@@ -1,5 +1,6 @@
 <template>
- <div class="d-flex justify-content-end">
+  <div id="main_container" class=" sticky-top">
+ <div class="d-flex justify-content-end"  >
 
    <button id='button_type'  @click="$emit('toggle-type')" style="padding: 6px" class="btn btn-outline-dark  me-2">
 
@@ -8,10 +9,18 @@
 
    </button>
 
-   <button class="btn btn-outline-dark me-2" data-bs-toggle="collapse" data-bs-target="#toggleDiv">
+   <button class="btn btn-outline-dark me-2" data-bs-toggle="collapse"  style="padding: 6px" data-bs-target="#toggleDiv">
     <i class="bi bi-funnel"></i>
      <span class="small-text" style="display: block;">Filter</span>
   </button>
+
+
+   <button id='button_hide'  @click="$emit('toggle-hide')" style="padding: 6px" class="btn btn-outline-dark  me-2">
+
+     <i :class="hide ? 'bi bi-eye-slash' : 'bi bi-eye-fill'"></i>
+     <span class="small-text" style="display: block;">Detail</span>
+
+   </button>
 
    <button id='button_sorting'  @click="$emit('toggle-sorting')" style="padding: 6px" class="btn btn-outline-dark  me-2">
 
@@ -35,6 +44,8 @@
 
   <br>
 
+  </div>
+
 </template>
 
 <script>
@@ -44,8 +55,9 @@ export default {
     mode: String,
     sorting: String,
     type: String,
+    hide: Boolean,
   },
-  emits: ['toggle-mode', 'toggle-sorting', 'toggle-type']
+  emits: ['toggle-mode', 'toggle-sorting', 'toggle-type', 'toggle-hide']
 }
 </script>
 
@@ -67,5 +79,11 @@ a {
 }
 .small-text {
   font-size: 10px;
+}
+
+#main_container{
+  z-index: 1000;
+  background-color: white;
+  padding: 12px;
 }
 </style>

@@ -1,6 +1,6 @@
 <template>
 
-  <SettingsUI @toggle-mode="toggleMode" @toggle-sorting="toggleSorting" @toggle-type="toggleType" :mode="settings.mode" :sorting="settings.sorting_chromosome" :type="settings.type_position"/>
+  <SettingsUI @toggle-mode="toggleMode" @toggle-sorting="toggleSorting" @toggle-type="toggleType" @toggle-hide="toggleHide" :hide="settings.hide" :mode="settings.mode" :sorting="settings.sorting_chromosome" :type="settings.type_position"/>
 
   <ChromosomeViewer v-for="(item,index) in sortedData" :key="item.id" :datum="item" :domain_max="domain_max" :settings="settings" @updateZoom="updateZoom(index, $event)" @domainChanged="updateDomain(index, $event)" @addSelectedRegions="addSelectedRegions(index, $event)" />
 
@@ -14,6 +14,7 @@ import 'bootstrap'
 import SettingsUI from './components/Settings.vue'
 import ChromosomeViewer from './components/Chromosome.vue'
 import * as d3 from 'd3';
+import * as perlin from './perlin.js';
 
 export default {
   name: 'GenomeViewer',
@@ -31,9 +32,11 @@ export default {
         'type_chromosome': 'extant',
         'sorting_chromosome': 'size',
         'min_genes': 100,
-        'svgHeight': 100,
-        'svgHeight_overview': 60,
+        'svgHeight': 80,
+        'svgHeight_overview': 40,
+        'svgHeight_mapper' :42,
         'type_position': 'loci',
+        'hide': false,
         'defaut_gene_color': 'lightgrey',
         'brushed_gene_color': 'salmon',
         'mode': 'zoom',
@@ -65,6 +68,9 @@ export default {
     toggleType(){
       this.settings.type_position = this.settings.type_position === 'loci' ? 'index' : 'loci'
     },
+    toggleHide(){
+      this.settings.hide = this.settings.hide ? false: true
+    },
     // FACTORY METHODS
     process_extant(datum) {
       // Process the data for extant chromosomes
@@ -81,6 +87,8 @@ export default {
         d.index = i
         return d
       })
+
+      datum.nodes.forEach(gene => {  gene.color = perlin.simplex2(0, gene.index)})
 
       if (!isNaN(datum.nodes[0]['chromosome']) || ['X', 'Y', 'MT'].includes(datum.nodes[0]['chromosome']) ){
         datum.name = "Chromosome " + datum.nodes[0]['chromosome']
@@ -172,6 +180,8 @@ export default {
         previous.edge = previous.edges[current];
       }
 
+      datum.nodes.forEach(gene => {  gene.color = perlin.simplex2(0, gene.index)})
+
       return datum
 
 
@@ -189,6 +199,7 @@ export default {
     generateUniqueId() {
       return Date.now().toString(36) + Math.random().toString(36).substr(2, 9);
     },
+
 
     // MODEL SETTERS
     updateDomain(index, newDomain) {
