@@ -72,23 +72,38 @@
    <div class="vr" style="margin-right: 24px;"><p class="vertical-text">Overview</p></div>
 
 
+   <div class="dropdown">
+     <button id='button_color_excerpt' class=" btn btn-outline-dark me-2" type="button"  data-bs-toggle="dropdown" aria-expanded="false">
+       <i class="bi bi-paint-bucket"></i>
+       <span class="small-text" style="display: block;">Gene <i class="bi bi-caret-down"></i> </span>
+     </button>
+     <ul class="dropdown-menu" aria-labelledby="button_color_excerpt">
+       <li v-for="(option, index) in settings.states_color_genes" :key="index" class="dropdown-item">
 
-   <button id='button_color_excerpt' style="padding: 6px" class="btn btn-outline-dark  me-2">
+         <input type="radio" :id="'colorOption' + index" v-model="selectedColorOption_excerpt" :value="option">
 
-     <i class="bi bi-paint-bucket"></i>
-     <span class="small-text" style="display: block;">{{ colorAccessor_overview === null ? 'Default' : colorAccessor_overview  }}</span>
+         <label :for="'colorOption' + index"> &nbsp; {{ option == null? ' Default' : ' ' + option }}</label>
+       </li>
+     </ul>
+   </div>
 
-   </button>
+   <div class="dropdown">
+     <button id='button_height_excerpt' class=" btn btn-outline-dark me-2" type="button"  data-bs-toggle="dropdown" aria-expanded="false">
+       <i class="bi bi-arrows-vertical"></i>
+       <span class="small-text" style="display: block;">Height <i class="bi bi-caret-down"></i> </span>
+     </button>
+     <ul class="dropdown-menu" aria-labelledby="button_height_excerpt">
+       <li v-for="(option, index) in settings.states_color_genes" :key="index" class="dropdown-item">
 
-   <button id='button_height_excerpt'  style="padding: 6px" class="btn btn-outline-dark  me-2">
-     <i class="bi bi-arrows-vertical"></i>
-     <span class="small-text" style="display: block;">{{ colorAccessor_overview === null ? 'Default' : colorAccessor_overview  }}</span>
-   </button>
+         <input type="radio" :id="'heightOption' + index" v-model="selectedHeightOption_excerpt" :value="option">
+
+         <label :for="'heightOption' + index"> &nbsp; {{ option == null? ' Default' : ' ' + option }}</label>
+       </li>
+     </ul>
+   </div>
+
 
    <div class="vr" style="margin-right: 24px;"><p class="vertical-text">Excerpt</p></div>
-
-
-
 
 
 
@@ -119,7 +134,9 @@ export default {
     return {
       dropdownVisible: false,
       selectedColorOption: null,
+      selectedColorOption_excerpt: null,
       selectedHeightOption: null,
+      selectedHeightOption_excerpt: null,
     };
   },
   methods: {
@@ -128,6 +145,12 @@ export default {
     },
     toggleColorHeight() {
       this.$emit('update-height-overview', this.selectedHeightOption);
+    },
+    toggleColor_excerpt() {
+      this.$emit('update-color-excerpt', this.selectedColorOption_excerpt);
+    },
+    toggleColorHeight_excerpt() {
+      this.$emit('update-height-excerpt', this.selectedHeightOption_excerpt);
     }
   },
   watch: {
@@ -136,9 +159,15 @@ export default {
     },
     selectedHeightOption() {
       this.toggleColorHeight();
+    },
+    selectedColorOption_excerpt() {
+      this.toggleColor_excerpt();
+    },
+    selectedHeightOption_excerpt() {
+      this.toggleColorHeight_excerpt();
     }
   },
-  emits: ['toggle-mode', 'toggle-sorting', 'toggle-type', 'toggle-hide', "toggle-color_overview",'update-color-overview', 'update-height-overview'],
+  emits: ['toggle-mode', 'toggle-sorting', 'toggle-type', 'toggle-hide', "toggle-color_overview",'update-color-overview', 'update-height-overview','update-color-excerpt', 'update-height-excerpt'],
 }
 </script>
 

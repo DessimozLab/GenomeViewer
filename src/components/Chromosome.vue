@@ -74,13 +74,23 @@ export default {
         this.render_overview()
       },
       deep: true,},
-
       'settings.heightAccessor_overview': {
         handler: function () {
           this.render_overview()
         },
         deep: true
       },
+    'settings.colorAccessor_excerpt': {
+      handler: function () {
+        this.render_excerpt()
+      },
+      deep: true,},
+    'settings.heightAccessor_excerpt': {
+      handler: function () {
+        this.render_excerpt()
+      },
+      deep: true
+    },
     },
 
     computed: {
@@ -361,9 +371,37 @@ export default {
         }
 
       },
+      color_gene_excerpt(d) {
+
+        if (this.isInSelectedRegion(d)) {
+          return this.settings.selected_gene_color
+        }
+
+        switch (this.settings.colorAccessor_excerpt) {
+          case 'datum1':
+            return this.color_scale_overview(d.data.datum1)
+          case 'datum2':
+            return this.color_scale_overview(d.data.datum2)
+          default:
+            return this.settings.defaut_gene_color
+        }
+      },
+      set_height_gene_excerpt_scale() {
+
+        if (this.settings.heightAccessor_excerpt === null) {
+          return this.settings.svgHeight;
+        }
+
+        else { // TODO GET REAL EXTENT
+          return d3.scaleLinear().domain([-1, 1]).range([0, this.settings.svgHeight]);
+        }
+
+      },
       render_excerpt() {
 
         const scale = d3.scaleLinear().domain([0, this.domain_max_current]).range([0, this.parentWidth]);
+
+        const scale_height = this.set_height_gene_excerpt_scale()
 
         var svg_excerpt = d3.select(this.$refs.svg_excerpt)
 
@@ -374,16 +412,31 @@ export default {
                     .attr('x', d => scale(this.d_start(d)))
                     .attr('y', this.margin_top_svg)
                     .attr('width', d => scale(this.d_end(d)) - scale(this.d_start(d)))
-                    .attr('height', this.settings.svgHeight)
+                    .attr('height', d => {return this.settings.heightAccessor_excerpt == null ? scale_height : scale_height(d.data[this.settings.heightAccessor_excerpt])})
                     .on('click', (event, d) => this.showMenu(event, d))
-                    .attr('fill', d => this.isInSelectedRegion(d) ? 'olive' : this.color_scale(d.data.datum1)),
+                    .attr('transform', d => {
+                      if  (this.settings.heightAccessor_excerpt == null) {
+                        return 'translate(0, 0)'
+                      } else {
+                        var y = this.settings.svgHeight - scale_height(d.data[this.settings.heightAccessor_excerpt])
+                        return `translate(0, ${y})`
+                      }})
+                    .attr('fill', d => this.color_gene_excerpt(d)),
                 update => update // For updated data, update the existing rectangles
                     .attr('x', d => scale(this.d_start(d)))
                     .attr('y', this.margin_top_svg)
                     .attr('width', d => scale(this.d_end(d)) - scale(this.d_start(d)))
-                    .attr('height', this.settings.svgHeight)
+                    .attr('height', d => {return this.settings.heightAccessor_excerpt == null ? scale_height : scale_height(d.data[this.settings.heightAccessor_excerpt])})
                     .on('click', (event, d) => this.showMenu(event, d))
-                    .attr('fill', d => this.isInSelectedRegion(d) ? 'olive' : this.color_scale(d.data.datum1)),
+                    .attr('transform', d => {
+                      if  (this.settings.heightAccessor_excerpt == null) {
+                        return 'translate(0, 0)'
+                      } else {
+                        var y = this.settings.svgHeight - scale_height(d.data[this.settings.heightAccessor_excerpt])
+                        return `translate(0, ${y})`
+                      }})
+
+                    .attr('fill', d => this.color_gene_excerpt(d)),
                 exit => exit.remove() // For outgoing data, remove the rectangles
             );
 
