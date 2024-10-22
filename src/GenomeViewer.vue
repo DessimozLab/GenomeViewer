@@ -1,6 +1,6 @@
 <template>
 
-  <SettingsUI @toggle-mode="toggleMode" @toggle-sorting="toggleSorting" @toggle-type="toggleType" @toggle-hide="toggleHide" @update-color-overview="toggleColorOverview" :hide="settings.hide" :settings="settings" :mode="settings.mode" :sorting="settings.sorting_chromosome" :type="settings.type_position" :colorAccessor_overview="settings.colorAccessor_overview"/>
+  <SettingsUI @toggle-mode="toggleMode" @toggle-sorting="toggleSorting" @toggle-type="toggleType" @toggle-hide="toggleHide" @update-height-overview="toggleHeightOverview" @update-color-overview="toggleColorOverview" :hide="settings.hide" :settings="settings" :mode="settings.mode" :sorting="settings.sorting_chromosome" :type="settings.type_position" :heightAccessor_overview='settings.heightAccessor_overview'  :colorAccessor_overview="settings.colorAccessor_overview"/>
 
   <ChromosomeViewer v-for="(item,index) in sortedData" :key="item.id" :datum="item" :domain_max="domain_max" :settings="settings" @updateZoom="updateZoom(index, $event)" @domainChanged="updateDomain(index, $event)" @addSelectedRegions="addSelectedRegions(index, $event)" />
 
@@ -43,6 +43,7 @@ export default {
         // OVERVIEW SETTINGS
         'svgHeight_overview': 40,
         'colorAccessor_overview': null,
+        'heightAccessor_overview': null,
         'defaut_gene_color': 'lightgrey',
         'brushed_gene_color': 'salmon',
 
@@ -73,6 +74,9 @@ export default {
   methods: {
     toggleColorOverview(selectedOption) {
       this.settings.colorAccessor_overview = selectedOption;
+    },
+    toggleHeightOverview(selectedOption) {
+      this.settings.heightAccessor_overview = selectedOption;
     },
     toggleMode() {
       this.settings.mode = this.settings.mode === 'zoom' ? 'brush' : 'zoom';

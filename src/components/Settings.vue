@@ -53,10 +53,21 @@
      </ul>
    </div>
 
-   <button id='button_height_overview'  style="padding: 6px" class="btn btn-outline-dark  me-2">
-     <i class="bi bi-arrows-vertical"></i>
-     <span class="small-text" style="display: block;">{{ colorAccessor_overview === null ? 'Default' : colorAccessor_overview  }}</span>
-   </button>
+   <div class="dropdown">
+     <button id='button_height_overview' class=" btn btn-outline-dark me-2" type="button"  data-bs-toggle="dropdown" aria-expanded="false">
+       <i class="bi bi-arrows-vertical"></i>
+       <span class="small-text" style="display: block;">Height <i class="bi bi-caret-down"></i> </span>
+     </button>
+     <ul class="dropdown-menu" aria-labelledby="button_height_overview">
+       <li v-for="(option, index) in settings.states_color_genes" :key="index" class="dropdown-item">
+
+         <input type="radio" :id="'heightOption' + index" v-model="selectedHeightOption" :value="option">
+
+         <label :for="'heightOption' + index"> &nbsp; {{ option == null? ' Default' : ' ' + option }}</label>
+       </li>
+     </ul>
+   </div>
+
 
    <div class="vr" style="margin-right: 24px;"><p class="vertical-text">Overview</p></div>
 
@@ -107,24 +118,27 @@ export default {
   data() {
     return {
       dropdownVisible: false,
-      selectedColorOption: null
+      selectedColorOption: null,
+      selectedHeightOption: null,
     };
   },
   methods: {
-    toggleDropdown() {
-      this.dropdownVisible = !this.dropdownVisible;
-    },
     toggleColorOverview() {
-      console.log(this.selectedColorOption)
       this.$emit('update-color-overview', this.selectedColorOption);
+    },
+    toggleColorHeight() {
+      this.$emit('update-height-overview', this.selectedHeightOption);
     }
   },
   watch: {
     selectedColorOption() {
       this.toggleColorOverview();
+    },
+    selectedHeightOption() {
+      this.toggleColorHeight();
     }
   },
-  emits: ['toggle-mode', 'toggle-sorting', 'toggle-type', 'toggle-hide', "toggle-color_overview",'update-color-overview'],
+  emits: ['toggle-mode', 'toggle-sorting', 'toggle-type', 'toggle-hide', "toggle-color_overview",'update-color-overview', 'update-height-overview'],
 }
 </script>
 
