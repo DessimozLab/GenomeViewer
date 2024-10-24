@@ -2,7 +2,7 @@
 
   <SettingsUI @settings-event="handleSettingsEvent" :settings="settings" />
 
-  <ChromosomeViewer v-for="(item,index) in sortedData" :key="item.id" :datum="item" :domain_max="domain_max" :settings="settings" @updateZoom="updateZoom(index, $event)" @domainChanged="updateDomain(index, $event)" @addSelectedRegions="addSelectedRegions(index, $event)" />
+  <ChromosomeViewer v-for="(item,index) in sortedData" :key="item.id" :datum="item" :domain_max="domain_max" :settings="settings" @chromosome-event="handleChromosomeEvent(index, $event)"  />
 
 </template>
 
@@ -67,6 +67,22 @@ export default {
     this.prepare_data()
   },
   methods: {
+    handleChromosomeEvent(index, { eventType, payload }) {
+      switch (eventType) {
+        case 'updateZoom':
+          this.updateZoom(index, payload)
+          break;
+        case 'domainChanged':
+          this.updateDomain(index, payload)
+          break;
+        case 'updateDomain':
+          this.updateDomain(index, payload)
+          break;
+        case 'addSelectedRegions':
+          this.addSelectedRegions(index, payload)
+          break;
+      }
+    },
     // UI EVENT HANDLERS
     handleSettingsEvent({ eventType, payload }) {
       switch (eventType) {

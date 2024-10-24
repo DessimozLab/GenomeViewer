@@ -92,7 +92,6 @@ export default {
       deep: true
     },
     },
-
     computed: {
       domain_max_current() {
         const acc = this.settings.type_position === 'index' ? 'index' : 'start'
@@ -462,8 +461,11 @@ export default {
 
           // Update the rectangles with the new scale
           const [x0, x1] = newScale.domain();
-          this.$emit('domainChanged', [x0, x1]);
-          this.$emit('updateZoom', event.transform);
+
+
+
+          this.emitEvent('domainChanged',  [x0, x1] );
+          this.emitEvent( 'updateZoom', event.transform );
 
           this.render_overview()
           this.render_mapper()
@@ -501,11 +503,8 @@ export default {
 
 
             var newScale = this.datum.currentZoom.rescaleX(scale);
-
-
             const [x0, x1] = selection.map(newScale.invert);
-
-            this.$emit('addSelectedRegions', [x0, x1]);
+            this.emitEvent('addSelectedRegions', [x0, x1] );
             this.render_excerpt();
             this.render_mapper()
             this.render_overview();
@@ -535,6 +534,9 @@ export default {
       get_parentWidth() {
         return (this.$refs['interface_chr_small_container'].offsetWidth * (this.domain_max_current / this.domain_max)) - (window.innerWidth * 0.04);
       },
+      emitEvent(eventType, payload = null) {
+        this.$emit('chromosome-event', {eventType, payload});
+      },
     },
     mounted() {
       window.addEventListener('keyup', this.handleKeyup);
@@ -558,7 +560,7 @@ export default {
         menuContent: ''
       }
     },
-    emits: ['domainChanged', 'updateZoom', 'addSelectedRegions']
+  emits: ['chromosome-event'],
   }
 
 
