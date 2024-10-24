@@ -1,216 +1,164 @@
 <template>
-  <div id="main_container" class=" sticky-top">
- <div class="d-flex justify-content-end"  >
+  <div id="main_container" class="sticky-top">
+    <div class="d-flex justify-content-end">
 
-   <button id='button_type'  @click="$emit('toggle-type')" style="padding: 6px" class="btn btn-outline-dark  me-2">
+      <ButtonWithIcon
+          id="button_type"
+          :icon="typeIcon"
+          :text="typeText"
+          @click="emitEvent('toggle-type')"
+      />
 
-     <i class="bi bi-rulers"></i>
-     <span class="small-text" style="display: block;">{{ type === 'loci' ? 'Locus' : 'Fixed'}}</span>
+      <ButtonWithIcon
+          class="me-2"
+          data-bs-target="#toggleDiv"
+          data-bs-toggle="collapse"
+          icon="bi bi-funnel"
+          text="Filter"
+      />
 
-   </button>
+      <ButtonWithIcon
+          id="button_hide"
+          :icon="hideIcon"
+          text="Detail"
+          @click="emitEvent('toggle-hide')"
+      />
 
-   <button class="btn btn-outline-dark me-2" data-bs-toggle="collapse"  style="padding: 6px" data-bs-target="#toggleDiv">
-    <i class="bi bi-funnel"></i>
-     <span class="small-text" style="display: block;">Filter</span>
-  </button>
+      <ButtonWithIcon
+          id="button_sorting"
+          :icon="sortingIcon"
+          :text="sortingText"
+          @click="emitEvent('toggle-sorting')"
+      />
 
+      <ButtonWithIcon
+          id="button_selection"
+          :text="modeText"
+          icon="bi bi-hand-index"
+          @click="emitEvent('toggle-mode')"
+      />
 
-   <button id='button_hide'  @click="$emit('toggle-hide')" style="padding: 6px" class="btn btn-outline-dark  me-2">
+      <VerticalTextDivider text="General"/>
 
-     <i :class="hide ? 'bi bi-eye-slash' : 'bi bi-eye-fill'"></i>
-     <span class="small-text" style="display: block;">Detail</span>
+      <DropdownButton
+          id="button_color_overview"
+          v-model="localColorAccessorOverview"
+          :options="settings.states_color_genes"
+          icon="bi bi-paint-bucket"
+          text="Color"
+          @change="emitEvent('update-color-overview', $event)"
+      />
 
-   </button>
+      <DropdownButton
+          id="button_height_overview"
+          v-model="localHeightAccessorOverview"
+          :options="settings.states_color_genes"
+          icon="bi bi-arrows-vertical"
+          text="Height"
+          @change="emitEvent('update-height-overview', $event)"
+      />
 
-   <button id='button_sorting'  @click="$emit('toggle-sorting')" style="padding: 6px" class="btn btn-outline-dark  me-2">
+      <VerticalTextDivider text="Overview"/>
 
-     <i :class="sorting === 'size' ? 'bi bi-sort-up' : sorting === 'number_genes' ? 'bi bi-sort-numeric-up-alt' : 'bi bi-sort-alpha-up'"></i>
-     <span class="small-text" style="display: block;">{{ sorting === 'size' ? 'Size' : sorting === 'number_genes' ? 'Genes' : 'Name' }}</span>
+      <DropdownButton
+          id="button_color_excerpt"
+          v-model="localColorAccessorExcerpt"
+          :options="settings.states_color_genes"
+          icon="bi bi-paint-bucket"
+          text="Color"
+          @change="emitEvent('update-color-excerpt', $event)"
+      />
 
-   </button>
+      <DropdownButton
+          id="button_height_excerpt"
+          v-model="localHeightAccessorExcerpt"
+          :options="settings.states_color_genes"
+          icon="bi bi-arrows-vertical"
+          text="Height"
+          @change="emitEvent('update-height-excerpt', $event)"
+      />
 
-  <button id='button_selection'  @click="$emit('toggle-mode')" style="padding: 6px" class="btn btn-outline-dark  me-2">
+      <VerticalTextDivider text="Excerpt"/>
 
-    <i class="bi bi-hand-index"></i>
-    <span class="small-text" style="display: block;">{{ mode === 'zoom' ? 'Zoom' : 'Brush' }}</span>
-
-  </button>
-
-   <div class="vr" style="margin-right: 24px;"><p class="vertical-text" >General</p></div>
-
-   <div class="dropdown">
-     <button id='button_color_overview' class=" btn btn-outline-dark me-2" type="button"  data-bs-toggle="dropdown" aria-expanded="false">
-       <i class="bi bi-paint-bucket"></i>
-       <span class="small-text" style="display: block;">Gene <i class="bi bi-caret-down"></i> </span>
-     </button>
-     <ul class="dropdown-menu" aria-labelledby="button_color_overview">
-       <li v-for="(option, index) in settings.states_color_genes" :key="index" class="dropdown-item">
-
-         <input type="radio" :id="'colorOption' + index" v-model="selectedColorOption" :value="option">
-
-         <label :for="'colorOption' + index"> &nbsp; {{ option == null? ' Default' : ' ' + option }}</label>
-       </li>
-     </ul>
-   </div>
-
-   <div class="dropdown">
-     <button id='button_height_overview' class=" btn btn-outline-dark me-2" type="button"  data-bs-toggle="dropdown" aria-expanded="false">
-       <i class="bi bi-arrows-vertical"></i>
-       <span class="small-text" style="display: block;">Height <i class="bi bi-caret-down"></i> </span>
-     </button>
-     <ul class="dropdown-menu" aria-labelledby="button_height_overview">
-       <li v-for="(option, index) in settings.states_color_genes" :key="index" class="dropdown-item">
-
-         <input type="radio" :id="'heightOption' + index" v-model="selectedHeightOption" :value="option">
-
-         <label :for="'heightOption' + index"> &nbsp; {{ option == null? ' Default' : ' ' + option }}</label>
-       </li>
-     </ul>
-   </div>
-
-
-   <div class="vr" style="margin-right: 24px;"><p class="vertical-text">Overview</p></div>
-
-
-   <div class="dropdown">
-     <button id='button_color_excerpt' class=" btn btn-outline-dark me-2" type="button"  data-bs-toggle="dropdown" aria-expanded="false">
-       <i class="bi bi-paint-bucket"></i>
-       <span class="small-text" style="display: block;">Gene <i class="bi bi-caret-down"></i> </span>
-     </button>
-     <ul class="dropdown-menu" aria-labelledby="button_color_excerpt">
-       <li v-for="(option, index) in settings.states_color_genes" :key="index" class="dropdown-item">
-
-         <input type="radio" :id="'colorOption' + index" v-model="selectedColorOption_excerpt" :value="option">
-
-         <label :for="'colorOption' + index"> &nbsp; {{ option == null? ' Default' : ' ' + option }}</label>
-       </li>
-     </ul>
-   </div>
-
-   <div class="dropdown">
-     <button id='button_height_excerpt' class=" btn btn-outline-dark me-2" type="button"  data-bs-toggle="dropdown" aria-expanded="false">
-       <i class="bi bi-arrows-vertical"></i>
-       <span class="small-text" style="display: block;">Height <i class="bi bi-caret-down"></i> </span>
-     </button>
-     <ul class="dropdown-menu" aria-labelledby="button_height_excerpt">
-       <li v-for="(option, index) in settings.states_color_genes" :key="index" class="dropdown-item">
-
-         <input type="radio" :id="'heightOption' + index" v-model="selectedHeightOption_excerpt" :value="option">
-
-         <label :for="'heightOption' + index"> &nbsp; {{ option == null? ' Default' : ' ' + option }}</label>
-       </li>
-     </ul>
-   </div>
-
-
-   <div class="vr" style="margin-right: 24px;"><p class="vertical-text">Excerpt</p></div>
-
-
-
- </div>
-
-<div id="toggleDiv" class="collapse text-center" style="margin:24px; padding: 50px; border: #dddddd 1px solid">
-  <b>Place holder for filtering widget.</b>
-</div>
-
-  <br>
-
+    </div>
+    <div id="toggleDiv" class="collapse text-center" style="margin:24px; padding: 50px; border: #dddddd 1px solid">
+      <b>Place holder for filtering widget.</b>
+    </div>
   </div>
-
 </template>
 
 <script>
+import VerticalTextDivider from './VerticalTextDivider.vue';
+import ButtonWithIcon from './ButtonWithIcon.vue';
+import DropdownButton from './DropdownButton.vue';
+
 export default {
   name: 'SettingsUI',
+  components: {
+    VerticalTextDivider,
+    ButtonWithIcon,
+    DropdownButton
+  },
   props: {
-    mode: String,
-    sorting: String,
-    type: String,
-    hide: Boolean,
-    colorAccessor_overview: String,
     settings: Object,
   },
   data() {
     return {
-      dropdownVisible: false,
-      selectedColorOption: null,
-      selectedColorOption_excerpt: null,
-      selectedHeightOption: null,
-      selectedHeightOption_excerpt: null,
+      localColorAccessorOverview: this.settings.colorAccessor_overview,
+      localHeightAccessorOverview: this.settings.heightAccessor_overview,
+      localColorAccessorExcerpt: this.settings.colorAccessor_excerpt,
+      localHeightAccessorExcerpt: this.settings.heightAccessor_excerpt,
     };
   },
-  methods: {
-    toggleColorOverview() {
-      this.$emit('update-color-overview', this.selectedColorOption);
-    },
-    toggleColorHeight() {
-      this.$emit('update-height-overview', this.selectedHeightOption);
-    },
-    toggleColor_excerpt() {
-      this.$emit('update-color-excerpt', this.selectedColorOption_excerpt);
-    },
-    toggleColorHeight_excerpt() {
-      this.$emit('update-height-excerpt', this.selectedHeightOption_excerpt);
-    }
-  },
   watch: {
-    selectedColorOption() {
-      this.toggleColorOverview();
+    localColorAccessorOverview(newVal) {
+      this.emitEvent('update-color-overview', newVal);
     },
-    selectedHeightOption() {
-      this.toggleColorHeight();
+    localHeightAccessorOverview(newVal) {
+      this.emitEvent('update-height-overview', newVal);
     },
-    selectedColorOption_excerpt() {
-      this.toggleColor_excerpt();
+    localColorAccessorExcerpt(newVal) {
+      this.emitEvent('update-color-excerpt', newVal);
     },
-    selectedHeightOption_excerpt() {
-      this.toggleColorHeight_excerpt();
+    localHeightAccessorExcerpt(newVal) {
+      this.emitEvent('update-height-excerpt', newVal);
     }
   },
-  emits: ['toggle-mode', 'toggle-sorting', 'toggle-type', 'toggle-hide', "toggle-color_overview",'update-color-overview', 'update-height-overview','update-color-excerpt', 'update-height-excerpt'],
+  computed: {
+    typeIcon() {
+      return this.settings.type_position === 'loci' ? 'bi bi-rulers' : 'bi bi-rulers';
+    },
+    typeText() {
+      return this.settings.type_position === 'loci' ? 'Locus' : 'Fixed';
+    },
+    hideIcon() {
+      return this.settings.hide ? 'bi bi-eye-slash' : 'bi bi-eye-fill';
+    },
+    sortingIcon() {
+      return this.settings.sorting_chromosome === 'size' ? 'bi bi-sort-up' : this.settings.sorting_chromosome === 'number_genes' ? 'bi bi-sort-numeric-up-alt' : 'bi bi-sort-alpha-up';
+    },
+    sortingText() {
+      return this.settings.sorting_chromosome === 'size' ? 'Size' : this.settings.sorting_chromosome === 'number_genes' ? 'Genes' : 'Name';
+    },
+    modeText() {
+      return this.settings.mode === 'zoom' ? 'Zoom' : 'Brush';
+    },
+  },
+  methods: {
+    emitEvent(eventType, payload = null) {
+      this.$emit('settings-event', {eventType, payload});
+    },
+
+  },
+  emits: ['settings-event'],
 }
 </script>
 
-<!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
-h3 {
-  margin: 40px 0 0;
-}
-ul {
-  list-style-type: none;
-  padding: 0;
-}
-li {
-  display: inline-block;
-  margin: 0 10px;
-}
-a {
-  color: #42b983;
-}
-.small-text {
-  font-size: 10px;
-}
-
-#main_container{
+#main_container {
   z-index: 1000;
   background-color: white;
   padding: 12px;
-}
-.vertical-text {
-  transform: rotate(-90deg);
-  font-size: xx-small;
-  display: flex;
-  margin-left: 10px;
-  justify-content: right;
-
-}
-/* Add styles for the dropdown menu */
-.dropdown-menu {
-  position: absolute;
-  background-color: white;
-  border: 1px solid #ccc;
-  padding: 10px;
-  z-index: 1000;
 }
 
 </style>

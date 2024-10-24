@@ -1,6 +1,6 @@
 <template>
 
-  <SettingsUI @toggle-mode="toggleMode" @toggle-sorting="toggleSorting" @toggle-type="toggleType" @toggle-hide="toggleHide" @update-height-overview="toggleHeightOverview" @update-color-overview="toggleColorOverview" @update-height-excerpt="toggleHeightExcerpt" @update-color-excerpt="toggleColorExcerpt" :hide="settings.hide" :settings="settings" :mode="settings.mode" :sorting="settings.sorting_chromosome" :type="settings.type_position" :heightAccessor_overview='settings.heightAccessor_overview'  :colorAccessor_overview="settings.colorAccessor_overview" :heightAccessor_excerpt='settings.heightAccessor_excerpt'  :colorAccessor_excerpt="settings.colorAccessor_excerpt"/>
+  <SettingsUI @settings-event="handleSettingsEvent" :settings="settings" />
 
   <ChromosomeViewer v-for="(item,index) in sortedData" :key="item.id" :datum="item" :domain_max="domain_max" :settings="settings" @updateZoom="updateZoom(index, $event)" @domainChanged="updateDomain(index, $event)" @addSelectedRegions="addSelectedRegions(index, $event)" />
 
@@ -59,7 +59,6 @@ export default {
       index_color_genes_overview: 0,
       index_sorting: 0,
       states_sorting:  ['size', 'number_genes', 'name'],
-
       render_data: this.jsonData
     }
   },
@@ -67,14 +66,36 @@ export default {
     this.configure_settings_user()
     this.prepare_data()
   },
-  mounted() {
-    // For development purposes, add a global keyup event listener to modify the settings.sorting_chromosome
-    window.addEventListener('keyup', this.handleKeyup);
-  },
-  beforeUnmount() {
-    window.removeEventListener('keyup', this.handleKeyup);
-  },
   methods: {
+    // UI EVENT HANDLERS
+    handleSettingsEvent({ eventType, payload }) {
+      switch (eventType) {
+        case 'toggle-type':
+          this.toggleType();
+          break;
+        case 'toggle-hide':
+          this.toggleHide();
+          break;
+        case 'toggle-sorting':
+          this.toggleSorting();
+          break;
+        case 'toggle-mode':
+          this.toggleMode();
+          break;
+        case 'update-color-overview':
+          this.toggleColorOverview(payload);
+          break;
+        case 'update-height-overview':
+          this.toggleHeightOverview(payload);
+          break;
+        case 'update-color-excerpt':
+          this.toggleColorExcerpt(payload);
+          break;
+        case 'update-height-excerpt':
+          this.toggleHeightExcerpt(payload);
+          break;
+      }
+    },
     toggleColorExcerpt(selectedOption) {
       this.settings.colorAccessor_excerpt = selectedOption;
     },
@@ -294,7 +315,3 @@ export default {
 }
 </script>
 
-<style>
-#app {
-}
-</style>
