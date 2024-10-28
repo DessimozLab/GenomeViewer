@@ -1,14 +1,14 @@
 <template>
   <div id="main_container" class="sticky-top">
     <div class="d-flex justify-content-end">
-
+      
       <ButtonWithIcon
           id="button_type"
           :icon="typeIcon"
           :text="typeText"
           @click="emitEvent('toggle-type')"
       />
-
+      
       <ButtonWithIcon
           class="me-2"
           data-bs-target="#toggleDiv"
@@ -16,70 +16,70 @@
           icon="bi bi-funnel"
           text="Filter"
       />
-
+      
       <ButtonWithIcon
           id="button_hide"
           :icon="hideIcon"
           text="Detail"
           @click="emitEvent('toggle-hide')"
       />
-
+      
       <ButtonWithIcon
           id="button_sorting"
           :icon="sortingIcon"
           :text="sortingText"
           @click="emitEvent('toggle-sorting')"
       />
-
+      
       <ButtonWithIcon
           id="button_selection"
           :text="modeText"
           icon="bi bi-hand-index"
           @click="emitEvent('toggle-mode')"
       />
-
+      
       <VerticalTextDivider text="General"/>
-
+      
       <DropdownButton
           id="button_color_overview"
           v-model="localColorAccessorOverview"
-          :options="settings.states_color_genes"
+          :options="statesColorGenes"
           icon="bi bi-paint-bucket"
           text="Color"
           @change="emitEvent('update-color-overview', $event)"
       />
-
+      
       <DropdownButton
           id="button_height_overview"
           v-model="localHeightAccessorOverview"
-          :options="settings.states_color_genes"
+          :options="statesColorGenes"
           icon="bi bi-arrows-vertical"
           text="Height"
           @change="emitEvent('update-height-overview', $event)"
       />
-
+      
       <VerticalTextDivider text="Overview"/>
-
+      
       <DropdownButton
           id="button_color_excerpt"
           v-model="localColorAccessorExcerpt"
-          :options="settings.states_color_genes"
+          :options="statesColorGenes"
           icon="bi bi-paint-bucket"
           text="Color"
           @change="emitEvent('update-color-excerpt', $event)"
       />
-
+      
       <DropdownButton
           id="button_height_excerpt"
           v-model="localHeightAccessorExcerpt"
-          :options="settings.states_color_genes"
+          :options="statesColorGenes"
           icon="bi bi-arrows-vertical"
           text="Height"
           @change="emitEvent('update-height-excerpt', $event)"
       />
-
+      
       <VerticalTextDivider text="Excerpt"/>
-
+      
     </div>
     <div id="toggleDiv" class="collapse text-center" style="margin:24px; padding: 50px; border: #dddddd 1px solid">
       <b>Place holder for filtering widget.</b>
@@ -101,6 +101,7 @@ export default {
   },
   props: {
     settings: Object,
+    statesColorGenes: Array,
   },
   data() {
     return {

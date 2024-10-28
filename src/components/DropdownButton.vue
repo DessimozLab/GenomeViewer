@@ -5,7 +5,7 @@
       <span :style="spanStyle">{{ text }} <i class="bi bi-caret-down"></i></span>
     </button>
     <ul class="dropdown-menu" :aria-labelledby="id">
-      <li v-for="(option, index) in options" :key="index" class="dropdown-item">
+      <li v-for="(option, index) in option_w_null" :key="index" class="dropdown-item">
         <input type="radio" :id="id + index" :value="option" :checked="modelValue === option" @change="$emit('update:modelValue', option)">
         <label :for="id + index">&nbsp;{{ option == null ? 'Default' : option }}</label>
       </li>
@@ -25,6 +25,11 @@ export default {
     spanStyle: {
       type: String,
       default: 'font-size: 10px;display: block;',
+    },
+  },
+  computed: {
+    option_w_null() {
+      return [null, ...this.options];
     },
   },
   emits: ['update:modelValue', 'change'],
