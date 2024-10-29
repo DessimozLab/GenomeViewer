@@ -425,15 +425,7 @@ export default {
 
       var svg_excerpt = d3.select(this.$refs.svg_excerpt)
 
-      // Render chromosome horizontal line
-      svg_excerpt.append('line')
-          .attr('x1', 0)
-          .attr('y1', this.settings.svgHeight/2)
-          .attr('x2', this.parentWidth)
-          .attr('y2', this.settings.svgHeight/2)
-          .attr('stroke', 'black')
-          .attr('opacity', 0.4)
-          .attr('stroke-width', 1);
+
 
       svg_excerpt.selectAll('rect')
           .data(this.datum.nodes) //.filter(d => this.d_start(d) >= this.datum.domain[0] && this.d_end(d) <= this.datum.domain[1]))
@@ -478,6 +470,45 @@ export default {
           );
 
 
+      svg_excerpt.selectAll('.line_between_right')
+          .data(this.datum.nodes.slice(0, this.datum.nodes.length - 1))
+          .join(
+              enter => enter.append('line')
+                  .attr('class', 'line_between_right')
+                  .attr('x1', (d) => scale(this.d_end(d)))
+                  .attr('y1', this.settings.svgHeight / 2)
+                  .attr('x2', (d,i) => scale(this.d_end(d)) + (scale(this.d_start(this.datum.nodes[i+1])) - scale(this.d_end(d))) / 2)
+                  .attr('y2',this.settings.svgHeight / 2)
+                  .attr('stroke', d =>  this.color_gene_excerpt(d))
+                  .attr('stroke-width', 0),
+              update => update
+                  .attr('x1', (d) => scale(this.d_end(d)))
+                  .attr('y1', this.settings.svgHeight / 2)
+                  .attr('x2', (d,i) => scale(this.d_end(d)) + (scale(this.d_start(this.datum.nodes[i+1])) - scale(this.d_end(d))) / 2)
+                  .attr('y2',this.settings.svgHeight / 2)
+                  .attr('stroke',d =>  this.color_gene_excerpt(d))
+                  .attr('stroke-width', 10),
+              exit => exit.remove()
+          );
+
+      svg_excerpt.selectAll('.line_between_left')
+          .data(this.datum.nodes.slice(1, this.datum.nodes.length))
+          .join(
+              enter => enter.append('line')
+                  .attr('class', 'line_between_left')
+                  .attr('x2', (d) => scale(this.d_start(d)))
+                  .attr('y1', this.settings.svgHeight / 2)
+                  .attr('x1', (d,i) => this.get_x1_edge(scale,d,i))
+                  .attr('y2',this.settings.svgHeight / 2)
+                  .attr('stroke', d =>  this.color_gene_excerpt(d))
+                  .attr('stroke-width', 10),
+              update => update
+                  .attr('x2', (d) => scale(this.d_start(d)))
+                  .attr('x1', (d,i) => this.get_x1_edge(scale,d,i))
+                  .attr('stroke',d =>  this.color_gene_excerpt(d)),
+              exit => exit.remove()
+          );
+
       svg_excerpt.selectAll('.line_extend')
           .data(this.get_min_max()) // Bind the data to the rectangles
           .join(
@@ -507,11 +538,22 @@ export default {
         this.render_overview()
         this.render_mapper()
 
+
+
         svg_excerpt.selectAll('rect')
             .attr('x', d => newScale(this.d_start(d)))
             .attr('width', d => newScale(this.d_end(d)) - newScale(this.d_start(d)));
 
-      }
+        svg_excerpt.selectAll('.line_between_right')
+            .attr('x1', (d) => newScale(this.d_end(d)))
+            .attr('x2', (d,i) => newScale(this.d_end(d)) + (newScale(this.d_start(this.datum.nodes[i+1])) - newScale(this.d_end(d))) / 2)
+
+        svg_excerpt.selectAll('.line_between_left')
+            .attr('x2', (d) => newScale(this.d_start(d)))
+            .attr('x1', (d,i) => this.get_x1_edge(newScale,d,i))
+
+      };
+
 
       // Create the zoom behavior
       var zoom = d3.zoom()
@@ -567,6 +609,9 @@ export default {
       }
 
 
+    },
+    get_x1_edge(scale, d, i) {
+      return scale(this.d_start(d)) - (scale(this.d_start(d)) - scale(this.d_end(this.datum.nodes[i]))) / 2
     },
     get_parentWidth() {
       return (this.$refs['interface_chr_small_container'].offsetWidth * (this.domain_max_current / this.domain_max)) - (window.innerWidth * 0.04);
