@@ -144,9 +144,20 @@ export default {
       this.menuPosition = {x: event.clientX, y: event.clientY};
       this.menuContent = `Gene: ${d.id}`;
 
-      this.settings.states_color_genes.forEach((state, i) => {
-        this.menuContent += `<br><span style="color: ${this.color_scale(d.data[state])}">State ${i + 1}: ${d.data[state]}</span>`;
-      });
+
+      // for each metric categories or numerical of gene generate a span with the color of the metric
+
+      if (this.settings.data_metrics.categorical) {
+        for (const key of Object.keys(this.settings.data_metrics.categorical)) {
+          this.menuContent += `<br><span >${key}: ${d.data[key]}</span>`
+        }
+      }
+
+      if (this.settings.data_metrics.numerical) {
+        for (const key of Object.keys(this.settings.data_metrics.numerical)) {
+          this.menuContent += `<br><span>${key}: ${d.data[key]}</span>`
+        }
+      }
 
       this.menuVisible = true;
     },
@@ -271,6 +282,7 @@ export default {
               enter => enter.append('rect') // For new data, append a new rectangle
                   .attr('x', d => scale(this.d_start(d)))
                   .attr('y', 0)
+                  .attr('opacity', 0.8)
                   .attr('width', d => scale(this.d_end(d)) - scale(this.d_start(d)))
                   .attr('height', d => {
                     return this.settings.heightAccessor_overview == null ? scale_height : scale_height(d.data[this.settings.heightAccessor_overview])
@@ -413,7 +425,15 @@ export default {
 
       var svg_excerpt = d3.select(this.$refs.svg_excerpt)
 
-
+      // Render chromosome horizontal line
+      svg_excerpt.append('line')
+          .attr('x1', 0)
+          .attr('y1', this.settings.svgHeight/2)
+          .attr('x2', this.parentWidth)
+          .attr('y2', this.settings.svgHeight/2)
+          .attr('stroke', 'black')
+          .attr('opacity', 0.4)
+          .attr('stroke-width', 1);
 
       svg_excerpt.selectAll('rect')
           .data(this.datum.nodes) //.filter(d => this.d_start(d) >= this.datum.domain[0] && this.d_end(d) <= this.datum.domain[1]))
@@ -442,13 +462,14 @@ export default {
                   .attr('height', d => {
                     return this.settings.heightAccessor_excerpt == null ? scale_height : scale_height(d.data[this.settings.heightAccessor_excerpt])
                   })
+                  .attr('opacity', 0.8)
                   .on('click', (event, d) => this.showMenu(event, d))
                   .attr('transform', d => {
                     if (this.settings.heightAccessor_excerpt == null) {
                       return 'translate(0, 0)'
                     } else {
                       var y = this.settings.svgHeight - scale_height(d.data[this.settings.heightAccessor_excerpt])
-                      return `translate(0, ${y})`
+                      return `translate(0, ${y/2})`
                     }
                   })
 

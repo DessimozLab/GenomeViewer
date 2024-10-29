@@ -51,6 +51,7 @@ export default {
 
         // DATUM RELATED SETTINGS
         exclusion_list: ['id', 'chromosome', 'start', 'end', 'hog_id' ],
+        exclusion_list_edges: ['source', 'target', 'id', 'hog_id', 'evidence'],
         data_metrics: null,
 
         // OVERVIEW SETTINGS
@@ -153,6 +154,7 @@ export default {
 
     // FACTORY METHODS
     process_extant(datum) {
+
       // Process the data for extant chromosomes
       datum.size_in_bp = Math.max(...datum.nodes.map(d => d.end))
       datum.size_in_genes = datum.nodes.length
@@ -169,16 +171,47 @@ export default {
       })
 
       // Fake data for the genes  TODO remove this
-
       datum.nodes.forEach(gene => { gene.data = {}})
-
       if (!isNaN(datum.nodes[0]['chromosome']) || ['X', 'Y', 'MT'].includes(datum.nodes[0]['chromosome'])) {
         datum.name = "Chromosome " + datum.nodes[0]['chromosome']
       } else {
         datum.name = datum.nodes[0]['chromosome']
       }
 
+      // get from "links" any data and add it to correcting nodes using targe and source mapped to id
+      this.bind_links_to_nodes(datum)
+
       return datum
+    },
+    bind_links_to_nodes(datum) {
+
+      var look_up = {};
+
+      // add neighbors and edges links to the nodes
+      datum['nodes'].forEach( (element) => {
+        look_up[element.id] = element
+      });
+
+      // add neighbors and edges links to the nodes
+      datum['links'].forEach((element) => {
+
+        var s = look_up[element.source];
+        var t = look_up[element.target];
+
+        var left_gene = s.index < t.index ? s : t;
+        left_gene.edges = element
+
+        Object.entries(element).forEach( ([key, value]) => {
+
+          // if key in exclusion list, skip
+          if (this.settings.exclusion_list_edges.includes(key)) {
+            return;
+          }
+          left_gene.data[key] = value
+        })
+
+      });
+
     },
     analyzeData() {
       const analysis = {
@@ -346,6 +379,8 @@ export default {
       }
 
       datum.nodes.forEach(gene => {gene.data = {}})
+
+      this.bind_links_to_nodes(datum)
 
       return datum
 
