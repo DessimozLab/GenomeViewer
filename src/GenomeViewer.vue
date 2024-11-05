@@ -68,7 +68,7 @@ export default {
         'colorAccessor_excerpt': null,
         'heightAccessor_excerpt': null,
         'colorAccessor_excerpt_edge': null,
-        'selected_gene_color': 'olive',
+        'selected_gene_color': 'SkyBlue',
         'edge_height': 8,
       },
       index_color_genes_overview: 0,

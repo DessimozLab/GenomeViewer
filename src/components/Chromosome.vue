@@ -277,6 +277,28 @@ export default {
           );
 
 
+      // add line beneath rectangles section to show wich part is selected in excerpt
+      const scaleline = d3.scaleLinear().domain([this.domain_min_current, this.domain_max_current]).range([0, this.CurrentWidth - 2]);
+
+      svg_mapper.selectAll('.line_selected')
+          .data(this.datum.selectedRegions) // Bind the data to the rectangles
+          .join(
+              enter => enter.append('line')
+                  .attr('class', 'line_selected')
+                  .attr('x1', d => scaleline(d[0]))
+                  .attr('y1', 3)
+                  .attr('x2', d => scaleline(d[1]))
+                  .attr('y2', 3)
+                  .attr('stroke', this.settings.selected_gene_color)
+                  .attr('opacity', 1)
+                  .attr('stroke-width', 2),
+              update => update // For updated data, update the existing rectangles
+                  .attr('x1', d => scaleline(d[0]))
+                  .attr('x2', d => scaleline(d[1])),
+              exit => exit.remove() // For outgoing data, remove the rectangles
+          );
+
+
     },
     render_overview( ) {
 
@@ -284,7 +306,6 @@ export default {
       const scale_height = this.set_height_gene_overview_scale()
 
       var svg_overview = d3.select(this.$refs.svg_overview)
-
 
       svg_overview.selectAll('rect')
           .data(this.datum.nodes) // Bind the data to the rectangles
@@ -347,6 +368,7 @@ export default {
                   .attr('stroke-width', 2),
               exit => exit.remove() // For outgoing data, remove the rectangles
           );
+
 
 
     },
@@ -487,7 +509,6 @@ export default {
                       return `translate(0, ${y/2})`
                     }
                   })
-
                   .attr('fill', d => this.color_gene_excerpt(d)),
               exit => exit.remove() // For outgoing data, remove the rectangles
           );
