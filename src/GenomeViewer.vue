@@ -67,7 +67,9 @@ export default {
         'svgHeight': 80,
         'colorAccessor_excerpt': null,
         'heightAccessor_excerpt': null,
-        'selected_gene_color': 'olive'
+        'colorAccessor_excerpt_edge': null,
+        'selected_gene_color': 'olive',
+        'edge_height': 8,
       },
       index_color_genes_overview: 0,
       index_sorting: 0,
@@ -124,10 +126,20 @@ export default {
         case 'update-height-excerpt':
           this.toggleHeightExcerpt(payload);
           break;
+        case 'update-color-excerpt_edge':
+          this.toggleColorExcerpt_edge(payload);
+          break;
+
+
+
+
       }
     },
     toggleColorExcerpt(selectedOption) {
       this.settings.colorAccessor_excerpt = selectedOption;
+    },
+    toggleColorExcerpt_edge(selectedOption) {
+      this.settings.colorAccessor_excerpt_edge = selectedOption;
     },
     toggleHeightExcerpt(selectedOption) {
       this.settings.heightAccessor_excerpt = selectedOption;

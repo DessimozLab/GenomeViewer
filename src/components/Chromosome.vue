@@ -87,6 +87,12 @@ export default {
       },
       deep: true,
     },
+    'settings.colorAccessor_excerpt_edge': {
+      handler: function () {
+        this.render_excerpt()
+      },
+      deep: true,
+    },
     'settings.heightAccessor_excerpt': {
       handler: function () {
         this.render_excerpt()
@@ -97,6 +103,10 @@ export default {
   computed: {
     color_scale_excerpt() {
       const extent = this.settings.data_metrics.numerical[this.settings.colorAccessor_excerpt]
+      return d3.scaleLinear([extent.min, extent.max], ['#ffafcc', '#a2d2ff']);
+    },
+    color_scale_excerpt_edge() {
+      const extent = this.settings.data_metrics.numerical[this.settings.colorAccessor_excerpt_edge]
       return d3.scaleLinear([extent.min, extent.max], ['#ffafcc', '#a2d2ff']);
     },
     color_scale_overview() {
@@ -406,6 +416,19 @@ export default {
       return this.color_scale_excerpt(d.data[this.settings.colorAccessor_excerpt])
 
     },
+    color_edge_excerpt(d) {
+
+      if (this.isInSelectedRegion(d)) {
+        return this.settings.selected_gene_color
+      }
+
+      if (this.settings.colorAccessor_excerpt_edge === null) {
+        return this.settings.defaut_gene_color
+      }
+
+      return this.color_scale_excerpt_edge(d.data[this.settings.colorAccessor_excerpt_edge])
+
+    },
     set_height_gene_excerpt_scale() {
 
       if (this.settings.heightAccessor_excerpt === null) {
@@ -479,15 +502,14 @@ export default {
                   .attr('y1', this.settings.svgHeight / 2)
                   .attr('x2', (d,i) => scale(this.d_end(d)) + (scale(this.d_start(this.datum.nodes[i+1])) - scale(this.d_end(d))) / 2)
                   .attr('y2',this.settings.svgHeight / 2)
-                  .attr('stroke', d =>  this.color_gene_excerpt(d))
-                  .attr('stroke-width', 0),
+                  .attr('stroke', d =>  this.color_edge_excerpt(d))
+                  .attr('stroke-width', this.settings.edge_height),
               update => update
                   .attr('x1', (d) => scale(this.d_end(d)))
                   .attr('y1', this.settings.svgHeight / 2)
                   .attr('x2', (d,i) => scale(this.d_end(d)) + (scale(this.d_start(this.datum.nodes[i+1])) - scale(this.d_end(d))) / 2)
                   .attr('y2',this.settings.svgHeight / 2)
-                  .attr('stroke',d =>  this.color_gene_excerpt(d))
-                  .attr('stroke-width', 10),
+                  .attr('stroke',d =>  this.color_edge_excerpt(d)),
               exit => exit.remove()
           );
 
@@ -500,12 +522,12 @@ export default {
                   .attr('y1', this.settings.svgHeight / 2)
                   .attr('x1', (d,i) => this.get_x1_edge(scale,d,i))
                   .attr('y2',this.settings.svgHeight / 2)
-                  .attr('stroke', d =>  this.color_gene_excerpt(d))
-                  .attr('stroke-width', 10),
+                  .attr('stroke', d =>  this.color_edge_excerpt(d))
+                  .attr('stroke-width', this.settings.edge_height),
               update => update
                   .attr('x2', (d) => scale(this.d_start(d)))
                   .attr('x1', (d,i) => this.get_x1_edge(scale,d,i))
-                  .attr('stroke',d =>  this.color_gene_excerpt(d)),
+                  .attr('stroke',d =>  this.color_edge_excerpt(d)),
               exit => exit.remove()
           );
 

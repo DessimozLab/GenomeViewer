@@ -45,7 +45,7 @@
           v-model="localColorAccessorOverview"
           :options="statesColorGenes"
           icon="bi bi-paint-bucket"
-          text="Color"
+          text="Gene"
           @change="emitEvent('update-color-overview', $event)"
       />
       
@@ -54,7 +54,7 @@
           v-model="localHeightAccessorOverview"
           :options="statesColorGenes"
           icon="bi bi-arrows-vertical"
-          text="Height"
+          text="Gene"
           @change="emitEvent('update-height-overview', $event)"
       />
       
@@ -65,7 +65,7 @@
           v-model="localColorAccessorExcerpt"
           :options="statesColorGenes"
           icon="bi bi-paint-bucket"
-          text="Color"
+          text="Gene"
           @change="emitEvent('update-color-excerpt', $event)"
       />
       
@@ -74,8 +74,17 @@
           v-model="localHeightAccessorExcerpt"
           :options="statesColorGenes"
           icon="bi bi-arrows-vertical"
-          text="Height"
+          text="Gene"
           @change="emitEvent('update-height-excerpt', $event)"
+      />
+
+      <DropdownButton
+          id="button_color_edge_excerpt"
+          v-model="localColorEdgeAccessorExcerpt"
+          :options="statesColorGenes"
+          icon="bi bi-paint-bucket"
+          text="Edge"
+          @change="emitEvent('update-color_edge-excerpt', $event)"
       />
       
       <VerticalTextDivider text="Excerpt"/>
@@ -109,6 +118,7 @@ export default {
       localHeightAccessorOverview: this.settings.heightAccessor_overview,
       localColorAccessorExcerpt: this.settings.colorAccessor_excerpt,
       localHeightAccessorExcerpt: this.settings.heightAccessor_excerpt,
+      localColorEdgeAccessorExcerpt : this.settings.colorAccessor_excerpt_edge
     };
   },
   watch: {
@@ -123,7 +133,10 @@ export default {
     },
     localHeightAccessorExcerpt(newVal) {
       this.emitEvent('update-height-excerpt', newVal);
-    }
+    },
+    localColorEdgeAccessorExcerpt(newVal) {
+      this.emitEvent('update-color-excerpt_edge', newVal);
+    },
   },
   computed: {
     typeIcon() {
