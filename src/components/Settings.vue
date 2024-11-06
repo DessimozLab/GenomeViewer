@@ -1,8 +1,23 @@
 <template>
   <div id="main_container" class="sticky-top">
     <div class="d-flex justify-content-end">
+
+      <ButtonWithIcon
+          id="button_modal"
+          icon="bi bi-card-list"
+          text='Selected genes'
+          @click="showModal"
+          class="align-left"
+          v-if="hasSelectedGenes"
+      />
+      <SelectedGenesModal
+          v-if="isModalVisible"
+          :selectedGenes="selectedGenes"
+          @close="hideModal"
+      />
       
       <ButtonWithIcon
+          v-if="isNotAncestral"
           id="button_type"
           :icon="typeIcon"
           :text="typeText"
@@ -100,13 +115,16 @@
 import VerticalTextDivider from './VerticalTextDivider.vue';
 import ButtonWithIcon from './ButtonWithIcon.vue';
 import DropdownButton from './DropdownButton.vue';
+import SelectedGenesModal from './SelectedGenesModal.vue';
+
 
 export default {
   name: 'SettingsUI',
   components: {
     VerticalTextDivider,
     ButtonWithIcon,
-    DropdownButton
+    DropdownButton,
+    SelectedGenesModal
   },
   props: {
     settings: Object,
@@ -114,6 +132,7 @@ export default {
   },
   data() {
     return {
+      isModalVisible: false,
       localColorAccessorOverview: this.settings.colorAccessor_overview,
       localHeightAccessorOverview: this.settings.heightAccessor_overview,
       localColorAccessorExcerpt: this.settings.colorAccessor_excerpt,
@@ -139,6 +158,34 @@ export default {
     },
   },
   computed: {
+    hasSelectedGenes() {
+      return this.selectedGenes.length > 0;
+    },
+    isNotAncestral() {
+      return this.settings.type_chromosome !== 'ancestral';
+    },
+    d_start() {
+      return this.settings.type_position === 'loci' ? d => d.start : d => d.index
+    },
+    d_end() {
+      return this.settings.type_position === 'loci' ? d => d.end : d => d.index + 0.5
+    },
+    selectedGenes() {
+      return this.$parent.sortedData.flatMap(datum =>
+          datum.nodes.filter(node =>
+            {
+              return datum.selectedRegions.some(([x0, x1]) => {
+                if (this.d_start(node)>= x0 && this.d_start(node) <= x1){
+                  return true
+                }
+
+                return false
+              }
+              )
+            }
+          )
+      );
+    },
     typeIcon() {
       return this.settings.type_position === 'loci' ? 'bi bi-rulers' : 'bi bi-rulers';
     },
@@ -152,16 +199,22 @@ export default {
       return this.settings.sorting_chromosome === 'size' ? 'bi bi-sort-up' : this.settings.sorting_chromosome === 'number_genes' ? 'bi bi-sort-numeric-up-alt' : 'bi bi-sort-alpha-up';
     },
     sortingText() {
-      return this.settings.sorting_chromosome === 'size' ? 'Size' : this.settings.sorting_chromosome === 'number_genes' ? 'Genes' : 'Name';
+      return 'Sort by ' + (this.settings.sorting_chromosome === 'size' ? 'Size' : this.settings.sorting_chromosome === 'number_genes' ? 'Genes' : 'Name');
     },
     modeText() {
-      return this.settings.mode === 'zoom' ? 'Zoom' : 'Brush';
+      return this.settings.mode === 'zoom' ? 'Zoom/Pan' : 'Selection';
     },
   },
   methods: {
     emitEvent(eventType, payload = null) {
       this.$emit('settings-event', {eventType, payload});
     },
+    showModal() {
+      this.isModalVisible = true;
+    },
+    hideModal() {
+      this.isModalVisible = false;
+    }
 
   },
   emits: ['settings-event'],
@@ -175,4 +228,7 @@ export default {
   padding: 12px;
 }
 
+.align-left {
+  margin-right: auto !important;
+}
 </style>

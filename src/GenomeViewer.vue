@@ -374,7 +374,7 @@ export default {
       while (processing) {
         current.start = previous === null ? 0 : previous.end + 1;
         current.index = previous === null ? 0 : previous.index + 1;
-        current.end = current.start + Math.random();
+        current.end = current.start + 0.5;
 
 
         if (previous != null && current.neighbors.length === 1) {
@@ -440,6 +440,10 @@ export default {
       for (var key in this.user_settings) {
         var value = this.user_settings[key];
         this.settings[key] = value;
+      }
+
+      if (this.settings.type_chromosome === 'ancestral') {
+        this.settings.type_position = 'index';
       }
     }
   },
