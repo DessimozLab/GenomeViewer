@@ -151,7 +151,7 @@ export default {
   },
   methods: {
     showMenu(event, d) {
-      this.menuPosition = {x: event.clientX, y: event.clientY};
+      this.menuPosition = {x: event.pageX, y: event.pageY};
       this.menuContent = `Gene: ${d.id}`;
 
 
