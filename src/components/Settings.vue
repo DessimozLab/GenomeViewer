@@ -10,6 +10,7 @@
           class="align-left"
           v-if="hasSelectedGenes"
       />
+
       <SelectedGenesModal
           v-if="isModalVisible"
           :selectedGenes="selectedGenes"
@@ -158,6 +159,8 @@ export default {
     },
   },
   computed: {
+
+    // GETTER
     hasSelectedGenes() {
       return this.selectedGenes.length > 0;
     },
@@ -169,22 +172,6 @@ export default {
     },
     d_end() {
       return this.settings.type_position === 'loci' ? d => d.end : d => d.index + 0.5
-    },
-    selectedGenes() {
-      return this.$parent.sortedData.flatMap(datum =>
-          datum.nodes.filter(node =>
-            {
-              return datum.selectedRegions.some(([x0, x1]) => {
-                if (this.d_start(node)>= x0 && this.d_start(node) <= x1){
-                  return true
-                }
-
-                return false
-              }
-              )
-            }
-          )
-      );
     },
     typeIcon() {
       return this.settings.type_position === 'loci' ? 'bi bi-rulers' : 'bi bi-rulers';
@@ -204,11 +191,30 @@ export default {
     modeText() {
       return this.settings.mode === 'zoom' ? 'Zoom/Pan' : 'Selection';
     },
+    selectedGenes() {
+      return this.$parent.sortedData.flatMap(datum =>
+          datum.nodes.filter(node =>
+            {
+              return datum.selectedRegions.some(([x0, x1]) => {
+                if (this.d_start(node)>= x0 && this.d_start(node) <= x1){
+                  return true
+                }
+
+                return false
+              }
+              )
+            }
+          )
+      );
+    },
   },
   methods: {
+    // EVENTS
     emitEvent(eventType, payload = null) {
       this.$emit('settings-event', {eventType, payload});
     },
+
+    // UI INTERACTIONS
     showModal() {
       this.isModalVisible = true;
     },

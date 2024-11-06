@@ -1,6 +1,5 @@
 <template>
 
-
  <div ref="interface_chr_small_container" id="interface_chr_small_container"  >
 
    <div id="interface_chr_small_container_div">
@@ -101,6 +100,7 @@ export default {
     },
   },
   computed: {
+    // SCALE
     color_scale_excerpt() {
       const extent = this.settings.data_metrics.numerical[this.settings.colorAccessor_excerpt]
       return d3.scaleLinear([extent.min, extent.max], ['#ffafcc', '#a2d2ff']);
@@ -118,6 +118,8 @@ export default {
       const extent = this.settings.data_metrics.numerical[this.settings.colorAccessor_overview]
       return d3.scaleLinear([extent.min, extent.max], ['#ffafcc', '#a2d2ff']);
     },
+
+    // GETTER
     domain_max_current() {
       const acc = this.settings.type_position === 'index' ? 'index' : 'start'
       return Math.max(...this.datum.nodes.map(d => d[acc]))
@@ -150,49 +152,8 @@ export default {
     },
   },
   methods: {
-    showMenu(event, d) {
-      this.menuPosition = {x: event.pageX, y: event.pageY};
-      this.menuContent = `Gene: ${d.id}`;
 
-
-      // for each metric categories or numerical of gene generate a span with the color of the metric
-
-      if (this.settings.data_metrics.categorical) {
-        for (const key of Object.keys(this.settings.data_metrics.categorical)) {
-          this.menuContent += `<br><span >${key}: ${d.data[key]}</span>`
-        }
-      }
-
-      if (this.settings.data_metrics.numerical) {
-        for (const key of Object.keys(this.settings.data_metrics.numerical)) {
-          this.menuContent += `<br><span>${key}: ${d.data[key]}</span>`
-        }
-      }
-
-      this.menuVisible = true;
-    },
-    hideMenu() {
-      this.menuVisible = false;
-    },
-    toggleSvgDisplay() {
-      const svgExcerpt = this.$refs.svg_excerpt;
-      const svgMapper = this.$refs.svg_mapper;
-
-      if (this.settings.hide) {
-        svgExcerpt.style.display = 'none';
-        svgMapper.style.display = 'none';
-        return;
-      } else {
-        svgExcerpt.style.display = 'block';
-        svgMapper.style.display = 'block';
-      }
-    },
-    isInSelectedRegion(d) {
-      return this.datum.selectedRegions.some(([x0, x1]) => this.d_start(d) >= x0 && this.d_end(d) <= x1);
-    },
-    pretty_locus(l) {
-      return d3.format(",.9r")(parseInt(l))
-    },
+    // RENDER
     render_mapper() {
 
       const scale_overview = d3.scaleLinear().domain([this.domain_min_current, this.domain_max_current]).range([0, this.CurrentWidth - 2]);
@@ -370,96 +331,6 @@ export default {
           );
 
 
-
-    },
-    set_anchor_position(d) {
-      var [min, max] = this.get_min_max()
-      var scale = d3.scaleLinear().domain([0, this.domain_max]).range([0, this.CurrentWidth]);
-      var minPixel = scale(min);
-      var maxPixel = scale(max);
-      var threshold = 150; // Set a threshold for the minimum pixel distance to avoid overlap
-
-      if (d === min && minPixel < threshold / 2) {
-        return 'start';
-      }
-
-      if (d === max && this.CurrentWidth - maxPixel < threshold) {
-        return 'end';
-      }
-      if (Math.abs(maxPixel - minPixel) < threshold / 2) {
-        // If min and max are too close to each other, reverse the anchor position
-        return d === min ? 'end' : 'start';
-      } else {
-        return d === min ? 'middle' : 'middle';
-      }
-    },
-    get_min_max() {
-      var min = this.datum.domain !== null ? this.datum.domain[0] : 0
-      var max = this.datum.domain !== null ? this.datum.domain[1] : this.domain_max
-
-      return [min, max]
-    },
-    color_gene_overview(d) {
-
-      if (!this.settings.hide) {
-        var [min, max] = this.get_min_max()
-        if (this.d_start(d) >= min && this.d_end(d) <= max) {
-          return this.settings.brushed_gene_color
-        }
-      }
-
-      if (this.settings.colorAccessor_overview === null) {
-        return this.settings.defaut_gene_color
-      }
-
-      return this.color_scale_overview(d.data[this.settings.colorAccessor_overview])
-
-    },
-    set_height_gene_overview_scale() {
-
-      if (this.settings.heightAccessor_overview === null) {
-        return this.settings.svgHeight_overview;
-      } else {
-        const extent = this.settings.data_metrics.numerical[this.settings.heightAccessor_overview]
-        return d3.scaleLinear().domain([extent.min, extent.max]).range([0, this.settings.svgHeight_overview]);
-      }
-
-    },
-    color_gene_excerpt(d) {
-
-      if (this.isInSelectedRegion(d)) {
-        return this.settings.selected_gene_color
-      }
-
-      if (this.settings.colorAccessor_excerpt === null) {
-        return this.settings.defaut_gene_color
-      }
-
-      return this.color_scale_excerpt(d.data[this.settings.colorAccessor_excerpt])
-
-    },
-    color_edge_excerpt(d) {
-
-      if (this.isInSelectedRegion(d)) {
-        return this.settings.selected_gene_color
-      }
-
-      if (this.settings.colorAccessor_excerpt_edge === null) {
-        return this.settings.defaut_gene_color
-      }
-
-      return this.color_scale_excerpt_edge(d.data[this.settings.colorAccessor_excerpt_edge])
-
-    },
-    set_height_gene_excerpt_scale() {
-
-      if (this.settings.heightAccessor_excerpt === null) {
-        return this.settings.svgHeight;
-      } else { // TODO GET REAL EXTENT
-
-        const extent = this.settings.data_metrics.numerical[this.settings.heightAccessor_excerpt]
-        return d3.scaleLinear().domain([extent.min, extent.max]).range([0, this.settings.svgHeight]);
-      }
 
     },
     render_excerpt( ) {
@@ -653,12 +524,158 @@ export default {
 
 
     },
+
+
+    // SCALE & COLOR
+    color_gene_overview(d) {
+
+      if (!this.settings.hide) {
+        var [min, max] = this.get_min_max()
+        if (this.d_start(d) >= min && this.d_end(d) <= max) {
+          return this.settings.brushed_gene_color
+        }
+      }
+
+      if (this.settings.colorAccessor_overview === null) {
+        return this.settings.defaut_gene_color
+      }
+
+      return this.color_scale_overview(d.data[this.settings.colorAccessor_overview])
+
+    },
+    set_height_gene_overview_scale() {
+
+      if (this.settings.heightAccessor_overview === null) {
+        return this.settings.svgHeight_overview;
+      } else {
+        const extent = this.settings.data_metrics.numerical[this.settings.heightAccessor_overview]
+        return d3.scaleLinear().domain([extent.min, extent.max]).range([0, this.settings.svgHeight_overview]);
+      }
+
+    },
+    color_gene_excerpt(d) {
+
+      if (this.isInSelectedRegion(d)) {
+        return this.settings.selected_gene_color
+      }
+
+      if (this.settings.colorAccessor_excerpt === null) {
+        return this.settings.defaut_gene_color
+      }
+
+      return this.color_scale_excerpt(d.data[this.settings.colorAccessor_excerpt])
+
+    },
+    color_edge_excerpt(d) {
+
+      if (this.isInSelectedRegion(d)) {
+        return this.settings.selected_gene_color
+      }
+
+      if (this.settings.colorAccessor_excerpt_edge === null) {
+        return this.settings.defaut_gene_color
+      }
+
+      return this.color_scale_excerpt_edge(d.data[this.settings.colorAccessor_excerpt_edge])
+
+    },
+    set_height_gene_excerpt_scale() {
+
+      if (this.settings.heightAccessor_excerpt === null) {
+        return this.settings.svgHeight;
+      }
+
+      else {
+        const extent = this.settings.data_metrics.numerical[this.settings.heightAccessor_excerpt]
+        return d3.scaleLinear().domain([extent.min, extent.max]).range([0, this.settings.svgHeight]);
+      }
+
+    },
+
+    // UI INTERACTION
+    showMenu(event, d) {
+      this.menuPosition = {x: event.pageX, y: event.pageY};
+      this.menuContent = `Gene: ${d.id}`;
+
+
+      // for each metric categories or numerical of gene generate a span with the color of the metric
+
+      if (this.settings.data_metrics.categorical) {
+        for (const key of Object.keys(this.settings.data_metrics.categorical)) {
+          this.menuContent += `<br><span >${key}: ${d.data[key]}</span>`
+        }
+      }
+
+      if (this.settings.data_metrics.numerical) {
+        for (const key of Object.keys(this.settings.data_metrics.numerical)) {
+          this.menuContent += `<br><span>${key}: ${d.data[key]}</span>`
+        }
+      }
+
+      this.menuVisible = true;
+    },
+    hideMenu() {
+      this.menuVisible = false;
+    },
+    toggleSvgDisplay() {
+      const svgExcerpt = this.$refs.svg_excerpt;
+      const svgMapper = this.$refs.svg_mapper;
+
+      if (this.settings.hide) {
+        svgExcerpt.style.display = 'none';
+        svgMapper.style.display = 'none';
+        return;
+      } else {
+        svgExcerpt.style.display = 'block';
+        svgMapper.style.display = 'block';
+      }
+    },
+
+    // UTILS
+    pretty_locus(l) {
+      return d3.format(",.9r")(parseInt(l))
+    },
+    isInSelectedRegion(d) {
+      return this.datum.selectedRegions.some(([x0, x1]) => this.d_start(d) >= x0 && this.d_end(d) <= x1);
+    },
+    set_anchor_position(d) {
+
+      // THIS function is used to set the anchor position of the text for mapper
+
+      var [min, max] = this.get_min_max()
+      var scale = d3.scaleLinear().domain([0, this.domain_max]).range([0, this.CurrentWidth]);
+      var minPixel = scale(min);
+      var maxPixel = scale(max);
+      var threshold = 150; // Set a threshold for the minimum pixel distance to avoid overlap
+
+      if (d === min && minPixel < threshold / 2) {
+        return 'start';
+      }
+
+      if (d === max && this.CurrentWidth - maxPixel < threshold) {
+        return 'end';
+      }
+      if (Math.abs(maxPixel - minPixel) < threshold / 2) {
+        // If min and max are too close to each other, reverse the anchor position
+        return d === min ? 'end' : 'start';
+      } else {
+        return d === min ? 'middle' : 'middle';
+      }
+    },
+    get_min_max() {
+      var min = this.datum.domain !== null ? this.datum.domain[0] : 0
+      var max = this.datum.domain !== null ? this.datum.domain[1] : this.domain_max
+
+      return [min, max]
+    },
     get_x1_edge(scale, d, i) {
       return scale(this.d_start(d)) - (scale(this.d_start(d)) - scale(this.d_end(this.datum.nodes[i]))) / 2
     },
     get_parentWidth() {
       return (this.$refs['interface_chr_small_container'].offsetWidth * (this.domain_max_current / this.domain_max)) - (window.innerWidth * 0.04);
     },
+
+    // EVENTS
     emitEvent(eventType, payload = null) {
       this.$emit('chromosome-event', {eventType, payload});
     },

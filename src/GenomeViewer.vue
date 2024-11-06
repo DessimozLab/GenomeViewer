@@ -21,11 +21,10 @@
 import 'bootstrap-icons/font/bootstrap-icons.css'
 import 'bootstrap/dist/css/bootstrap.css'
 import 'bootstrap'
+import * as d3 from 'd3';
 
 import SettingsUI from './components/Settings.vue'
 import ChromosomeViewer from './components/Chromosome.vue'
-import * as d3 from 'd3';
-//import * as perlin from './perlin.js';
 
 export default {
   name: 'GenomeViewer',
@@ -165,6 +164,20 @@ export default {
     },
 
     // FACTORY METHODS
+    prepare_data() {
+
+      const processFunction = this.settings.type_chromosome === 'extant' ? this.process_extant : this.process_ancestral;
+
+      this.render_data = Object.values(this.jsonData)
+          .filter(datum => datum.nodes.length > this.settings.min_genes)
+          .map(processFunction);
+
+      // TODO Remove [for testing purposes only]
+      this.add_fake_data()
+
+      this.analyzeData()
+
+    },
     process_extant(datum) {
 
       // Process the data for extant chromosomes
@@ -182,7 +195,6 @@ export default {
         return d
       })
 
-      // Fake data for the genes  TODO remove this
       datum.nodes.forEach(gene => { gene.data = {}})
       if (!isNaN(datum.nodes[0]['chromosome']) || ['X', 'Y', 'MT'].includes(datum.nodes[0]['chromosome'])) {
         datum.name = "Chromosome " + datum.nodes[0]['chromosome']
@@ -194,120 +206,6 @@ export default {
       this.bind_links_to_nodes(datum)
 
       return datum
-    },
-    bind_links_to_nodes(datum) {
-
-      var look_up = {};
-
-      // add neighbors and edges links to the nodes
-      datum['nodes'].forEach( (element) => {
-        look_up[element.id] = element
-      });
-
-      // add neighbors and edges links to the nodes
-      datum['links'].forEach((element) => {
-
-        var s = look_up[element.source];
-        var t = look_up[element.target];
-
-        var left_gene = s.index < t.index ? s : t;
-        left_gene.edges = element
-
-        Object.entries(element).forEach( ([key, value]) => {
-
-          // if key in exclusion list, skip
-          if (this.settings.exclusion_list_edges.includes(key)) {
-            return;
-          }
-          left_gene.data[key] = value
-        })
-
-      });
-
-    },
-    analyzeData() {
-      const analysis = {
-        numerical: {},
-        categorical: {}
-      };
-
-        this.render_data.forEach(datum => {
-        datum.nodes.forEach(node => {
-
-          Object.entries(node.data).forEach(([key, value]) => {
-            // if key in exclusion list, skip
-            if (this.settings.exclusion_list.includes(key)) {
-              return;
-            }
-            if (typeof value === 'number') {
-              if (!analysis.numerical[key]) {
-                analysis.numerical[key] = { min: value, max: value };
-              } else {
-                analysis.numerical[key].min = Math.min(analysis.numerical[key].min, value);
-                analysis.numerical[key].max = Math.max(analysis.numerical[key].max, value);
-              }
-            } else if (typeof value === 'string') {
-              if (!analysis.categorical[key]) {
-                analysis.categorical[key] = new Set();
-              }
-              analysis.categorical[key].add(value);
-            }
-          });
-        });
-      });
-
-
-      // Convert sets to arrays for categorical data
-      Object.keys(analysis.categorical).forEach(key => {
-        analysis.categorical[key] = Array.from(analysis.categorical[key]);
-      });
-
-      console.log(analysis);
-      this.settings.data_metrics = analysis;
-    },
-    add_fake_data() {
-
-      function generateRandomString(length) {
-        const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-        let result = '';
-        const charactersLength = characters.length;
-        for (let i = 0; i < length; i++) {
-          result += characters.charAt(Math.floor(Math.random() * charactersLength));
-        }
-        return result;
-      }
-      function chooseRandom() {
-        return Math.random() < 0.5 ? 'cat' : 'num';
-      }
-      function getRandomInt(min, max) {
-        min = Math.ceil(min);
-        max = Math.floor(max);
-        return Math.floor(Math.random() * (max - min + 1)) + min;
-      }
-      function getRandomElement(arr) {
-        const randomIndex = Math.floor(Math.random() * arr.length);
-        return arr[randomIndex];
-      }
-      function randomCategories() {
-        return Array.from({length: getRandomInt(5, 20)}, () => generateRandomString(5));
-      }
-      function randomOffset() {
-        return getRandomInt(-10000000000, 10000000000)
-      }
-
-
-      // generate 5 combination of type and name in array
-      const combinations = Array.from({length: 5}, () => [chooseRandom(), generateRandomString(5), randomCategories(),randomOffset() ])
-
-      this.render_data.forEach(datum => {
-      datum.nodes.forEach(gene => {
-        combinations.forEach(([type, name, categories, off_set_simplex ]) => {
-          gene.data[name] = (type === 'cat') ? getRandomElement(categories) : getRandomInt(0, off_set_simplex)
-        })
-      })
-
-      })
-
     },
     process_ancestral(datum) {
 
@@ -398,18 +296,118 @@ export default {
 
 
     },
-    prepare_data() {
+    bind_links_to_nodes(datum) {
 
-      const processFunction = this.settings.type_chromosome === 'extant' ? this.process_extant : this.process_ancestral;
+      var look_up = {};
 
-      this.render_data = Object.values(this.jsonData)
-          .filter(datum => datum.nodes.length > this.settings.min_genes)
-          .map(processFunction);
+      // add neighbors and edges links to the nodes
+      datum['nodes'].forEach( (element) => {
+        look_up[element.id] = element
+      });
 
-      this.add_fake_data()
+      // add neighbors and edges links to the nodes
+      datum['links'].forEach((element) => {
 
-      this.analyzeData()
+        var s = look_up[element.source];
+        var t = look_up[element.target];
 
+        var left_gene = s.index < t.index ? s : t;
+        left_gene.edges = element
+
+        Object.entries(element).forEach( ([key, value]) => {
+
+          // if key in exclusion list, skip
+          if (this.settings.exclusion_list_edges.includes(key)) {
+            return;
+          }
+          left_gene.data[key] = value
+        })
+
+      });
+
+    },
+    add_fake_data() {
+
+      function generateRandomString(length) {
+        const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        let result = '';
+        const charactersLength = characters.length;
+        for (let i = 0; i < length; i++) {
+          result += characters.charAt(Math.floor(Math.random() * charactersLength));
+        }
+        return result;
+      }
+      function chooseRandom() {
+        return Math.random() < 0.5 ? 'cat' : 'num';
+      }
+      function getRandomInt(min, max) {
+        min = Math.ceil(min);
+        max = Math.floor(max);
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+      }
+      function getRandomElement(arr) {
+        const randomIndex = Math.floor(Math.random() * arr.length);
+        return arr[randomIndex];
+      }
+      function randomCategories() {
+        return Array.from({length: getRandomInt(5, 20)}, () => generateRandomString(5));
+      }
+      function randomOffset() {
+        return getRandomInt(-10000000000, 10000000000)
+      }
+
+
+      // generate 5 combination of type and name in array
+      const combinations = Array.from({length: 5}, () => [chooseRandom(), generateRandomString(5), randomCategories(),randomOffset() ])
+
+      this.render_data.forEach(datum => {
+      datum.nodes.forEach(gene => {
+        combinations.forEach(([type, name, categories, off_set_simplex ]) => {
+          gene.data[name] = (type === 'cat') ? getRandomElement(categories) : getRandomInt(0, off_set_simplex)
+        })
+      })
+
+      })
+
+    },
+    analyzeData() {
+      const analysis = {
+        numerical: {},
+        categorical: {}
+      };
+
+      // scan all the data and get the min and max for numerical data and unique values for categorical data
+      this.render_data.forEach(datum => {
+        datum.nodes.forEach(node => {
+
+          Object.entries(node.data).forEach(([key, value]) => {
+            // if key in exclusion list, skip
+            if (this.settings.exclusion_list.includes(key)) {
+              return;
+            }
+            if (typeof value === 'number') {
+              if (!analysis.numerical[key]) {
+                analysis.numerical[key] = { min: value, max: value };
+              } else {
+                analysis.numerical[key].min = Math.min(analysis.numerical[key].min, value);
+                analysis.numerical[key].max = Math.max(analysis.numerical[key].max, value);
+              }
+            } else if (typeof value === 'string') {
+              if (!analysis.categorical[key]) {
+                analysis.categorical[key] = new Set();
+              }
+              analysis.categorical[key].add(value);
+            }
+          });
+        });
+      });
+
+      // Convert sets to arrays for categorical data
+      Object.keys(analysis.categorical).forEach(key => {
+        analysis.categorical[key] = Array.from(analysis.categorical[key]);
+      });
+
+      this.settings.data_metrics = analysis;
     },
 
     // UTILS
@@ -437,11 +435,14 @@ export default {
       }
     },
     configure_settings_user() {
+
+      // merge the user settings with the default settings
       for (var key in this.user_settings) {
         var value = this.user_settings[key];
         this.settings[key] = value;
       }
 
+      // force the type_position to index if the type_chromosome is ancestral
       if (this.settings.type_chromosome === 'ancestral') {
         this.settings.type_position = 'index';
       }
@@ -449,7 +450,7 @@ export default {
   },
   computed: {
     statesColorGenes() {
-      return Object.keys(this.settings.data_metrics.numerical) // todo make cat and num
+      return Object.keys(this.settings.data_metrics.numerical) // TODO make cat and num system
     },
     sortedData() {
       // Sort jsonData by some criteria in descending order
