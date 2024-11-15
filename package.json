@@ -1,7 +1,13 @@
 {
   "name": "chromosome-viewer",
-  "version": "1.0.7",
+  "version": "1.0.9",
   "private": false,
+  "main": "dist/ChromosomeViewer.umd.min.js",
+  "module": "dist/ChromosomeViewer.esm.js",
+  "unpkg": "dist/ChromosomeViewer.umd.min.js",
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build --target lib --name GenomeViewer src/GenomeViewer.vue",
