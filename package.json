@@ -1,6 +1,6 @@
 {
   "name": "chromosome-viewer",
-  "version": "1.0.18",
+  "version": "1.0.19",
   "private": false,
   "main": "dist/ChromosomeViewer.umd.min.js",
   "module": "dist/ChromosomeViewer.esm.js",
