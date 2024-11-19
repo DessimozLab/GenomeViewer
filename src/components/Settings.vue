@@ -27,6 +27,7 @@
       
       <ButtonWithIcon
           class="me-2"
+          v-if='false'
           data-bs-target="#toggleDiv"
           data-bs-toggle="collapse"
           icon="bi bi-funnel"
