@@ -1,11 +1,40 @@
 <template>
 
+
+
+
  <div ref="interface_chr_small_container" id="interface_chr_small_container"  >
 
    <div id="interface_chr_small_container_div">
-     <p id="chromosome_name">{{chromosome_name}}</p>
-     <p id="chromosome_genes_desc">{{chromosome_genes_desc}}</p>
+     <div style="margin-right: auto; display: flex">
+
+       <p id="chromosome_name" >{{chromosome_name}}</p>
+
+       <p  style="font-size: small; align-self: end" id="chromosome_genes_desc" >{{chromosome_genes_desc}}</p>
+
+     </div>
+
+     <div style="margin-left: auto">
+
+       <ButtonWithIcon
+           id="download_svg"
+           icon="null"
+           text=".SVG"
+           @click="this.downloadSVG"
+       />
+
+       <ButtonWithIcon
+           id="download_png"
+           icon="null"
+           text=".PNG"
+           @click="this.downloadPNG"
+       />
+
+     </div>
+
    </div>
+
+
 
    <svg ref="svg_overview" :width="CurrentWidth" style="border: 1px lightgray solid; border-radius: 18px;" :height="settings.svgHeight_overview" class="svg-element" ></svg>
 
@@ -26,9 +55,13 @@
 <script>
 
 import * as d3 from 'd3';
+import ButtonWithIcon from './ButtonWithIcon.vue';
 
 export default {
   name: 'ChromosomeViewer',
+  components: {
+    ButtonWithIcon
+  },
   props: {
     datum: Object,
     settings: Object,
@@ -152,6 +185,76 @@ export default {
     },
   },
   methods: {
+    combineSVGs() {
+      const svgElements = [
+        this.$refs.svg_overview,
+        this.$refs.svg_mapper,
+        this.$refs.svg_excerpt
+      ];
+
+      const padding = 10; // Add padding
+      const combinedSVG = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      combinedSVG.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+      combinedSVG.setAttribute("width", this.parentWidth + padding * 2);
+      combinedSVG.setAttribute("height", this.settings.svgHeight_overview + this.settings.svgHeight_mapper + this.settings.svgHeight + padding * 2);
+
+      let yOffset = padding;
+      svgElements.forEach(svg => {
+        const clonedSVG = svg.cloneNode(true);
+        clonedSVG.setAttribute("y", yOffset);
+        clonedSVG.setAttribute("x", padding); // Add padding to x position
+        combinedSVG.appendChild(clonedSVG);
+        yOffset += parseFloat(svg.getAttribute("height"));
+      });
+
+      return combinedSVG;
+    },
+    downloadSVG() {
+      const combinedSVG = this.combineSVGs();
+      const serializer = new XMLSerializer();
+      const svgBlob = new Blob([serializer.serializeToString(combinedSVG)], { type: "image/svg+xml;charset=utf-8" });
+      const url = URL.createObjectURL(svgBlob);
+
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "chromosome_viewer_" + this.chromosome_name + ".svg";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    },
+    downloadPNG() {
+      const combinedSVG = this.combineSVGs();
+      const serializer = new XMLSerializer();
+      const svgString = serializer.serializeToString(combinedSVG);
+      const canvas = document.createElement("canvas");
+      const context = canvas.getContext("2d");
+      const img = new Image();
+
+      canvas.width = combinedSVG.getAttribute("width");
+      canvas.height = combinedSVG.getAttribute("height");
+
+      // Set the background color to white
+      context.fillStyle = "#FFFFFF";
+      context.fillRect(0, 0, canvas.width, canvas.height);
+
+
+      img.onload = () => {
+        context.drawImage(img, 0, 0);
+        canvas.toBlob(blob => {
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          link.href = url;
+          link.download = "chromosome_viewer_" + this.chromosome_name + ".png";
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+        }, "image/png");
+      };
+
+      img.src = "data:image/svg+xml;base64," + btoa(svgString);
+    },
 
     // RENDER
     render_mapper() {
@@ -718,17 +821,17 @@ display: block;
 
 #interface_chr_small_container_div {
   display: flex;
-  justify-content: space-between;
 }
 
 #chromosome_name {
+  margin-right: 8px;
   text-align: left;
   font-weight: bold;
   color: rgb(99,99,102);
 }
 
 #chromosome_genes_desc {
-  text-align: right;
+  text-align: left;
   color: rgb(99,99,102);
 }
 
