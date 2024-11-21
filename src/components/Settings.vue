@@ -14,6 +14,7 @@
       <SelectedGenesModal
           v-if="isModalVisible"
           :selectedGenes="selectedGenes"
+          :settings="settings"
           @close="hideModal"
       />
       
