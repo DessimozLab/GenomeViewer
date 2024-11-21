@@ -650,7 +650,7 @@ export default {
       }
 
       var brush = d3.brushX()
-          .extent([[0, 0], [this.CurrentWidth, this.settings.svgHeight]])
+          .extent([[0, 0], [this.parentWidth, this.settings.svgHeight]])
           .on("end", brushed)
 
 

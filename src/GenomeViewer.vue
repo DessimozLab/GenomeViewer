@@ -208,7 +208,8 @@ export default {
         return d
       })
 
-      datum.nodes.forEach(gene => { gene.data = {}})
+      datum.nodes = this.get_data_metrics(datum.nodes)
+
       if (!isNaN(datum.nodes[0]['chromosome']) || ['X', 'Y', 'MT'].includes(datum.nodes[0]['chromosome'])) {
         datum.name = "Chromosome " + datum.nodes[0]['chromosome']
       } else {
@@ -219,6 +220,47 @@ export default {
       this.bind_links_to_nodes(datum)
 
       return datum
+    },
+    get_data_metrics(nodes){
+
+      const potentialTypes = {};
+
+      // Step 1: Determine potential types for each key
+      nodes.forEach(gene => {
+        Object.entries(gene).forEach(([key, value]) => {
+          if (this.settings.exclusion_list.includes(key)) {
+            return;
+          }
+
+          if (!potentialTypes[key]) {
+            potentialTypes[key] = 'number';
+          }
+
+          if (typeof value === 'string') {
+            potentialTypes[key] = 'string';
+          }
+        });
+      });
+
+      // Step 2: Add values to data with the determined type
+      nodes.forEach(gene => {
+        gene.data = {};
+
+        Object.entries(gene).forEach(([key, value]) => {
+          if (this.settings.exclusion_list.includes(key)) {
+            return;
+          }
+
+          if (potentialTypes[key] === 'number' && typeof value === 'number') {
+            gene.data[key] = value;
+          } else if (potentialTypes[key] === 'string') {
+            gene.data[key] = value.toString();
+          }
+        });
+      });
+
+      return nodes
+
     },
     process_ancestral(datum) {
 
@@ -301,7 +343,8 @@ export default {
         previous.edge = previous.edges[current];
       }
 
-      datum.nodes.forEach(gene => {gene.data = {}})
+      datum.nodes = this.get_data_metrics(datum.nodes)
+
 
       this.bind_links_to_nodes(datum)
 
