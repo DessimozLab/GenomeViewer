@@ -47,6 +47,11 @@ export default {
         'hide': false, // detail view
         'mode': 'zoom',
         'defaut_gene_color': 'lightgrey',
+        'oma' : false,
+        'level': null,
+        'callback_click_synteny': null,
+        'callback_click_detail': null,
+        'callback_click_members': null,
 
         // DATUM RELATED SETTINGS
         exclusion_list: ['id', 'chromosome', 'start', 'end', 'hog_id' ],

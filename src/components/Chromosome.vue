@@ -43,8 +43,16 @@
    <svg ref="svg_excerpt" :width="parentWidth" :height="settings.svgHeight" class="svg-element"></svg>
 
    <div v-if="menuVisible" :style="{ top: menuPosition.y + 'px', left: menuPosition.x + 'px' }" class="menu">
-     <div v-html="menuContent"></div>
-     <button style='' @click="hideMenu">Close</button>
+
+     <div class="tooltip__content__item">
+       <button class="close-button" @click="hideMenu">&times;</button>
+     </div>
+
+     <div v-for="item in menuContent" :key="item.id" style="margin-right: 36px">
+       <div class="tooltip__content__item">
+         <div :style=item.style :class="item.class" @click="item.click" v-html="item.content"></div>
+       </div>
+     </div>
    </div>
 
 
@@ -60,7 +68,7 @@ import ButtonWithIcon from './ButtonWithIcon.vue';
 export default {
   name: 'ChromosomeViewer',
   components: {
-    ButtonWithIcon
+    ButtonWithIcon,
   },
   props: {
     datum: Object,
@@ -185,6 +193,15 @@ export default {
     },
   },
   methods: {
+    callback_click_synteny(test) {
+      return this.settings.callback_click_synteny(test)
+    },
+    callback_click_detail(test) {
+      return  this.settings.callback_click_detail(test)
+    },
+    callback_click_members(test) {
+      return  this.settings.callback_click_members(test)
+    },
     combineSVGs() {
       const svgElements = [
         this.$refs.svg_overview,
@@ -697,25 +714,165 @@ export default {
 
     // UI INTERACTION
     showMenu(event, d) {
+
       this.menuPosition = {x: event.pageX, y: event.pageY};
-      this.menuContent = `Gene: ${d.id}`;
+
+      this.menuContent = []
+
+      this.menuContent.push({class: 'title', content: d.id , click:null, style: "font-size: 1.2em; font-weight: bold; margin-bottom: 0.5em;text-align: center;"})
 
 
-      // for each metric categories or numerical of gene generate a span with the color of the metric
+      // fetch and display OMA datum
+      if (this.settings.oma){
 
+        if (this.settings.type_chromosome === 'extant') {
+
+          var xhr3 = new XMLHttpRequest();
+          xhr3.open("GET", "/api/protein/"+ d.id +"/", false); // false makes the request synchronous
+          xhr3.send(null);
+
+          if (xhr3.status === 200) {
+            const data = JSON.parse(xhr3.responseText);
+
+            this.menuContent.push({type: 'text', content: '<b>External Id:</b>' + data.canonicalid  , click:null, style: null})
+            this.menuContent.push({type: 'text', content: '<b>Sequence length:</b>' + data.sequence_length , click:null, style: null})
+
+          }
+
+
+        }
+        else if (this.settings.type_chromosome === 'ancestral') {
+
+          var level_api = this.settings.level ? '?level=' + this.settings.level : ''
+
+
+            var xhr = new XMLHttpRequest();
+            xhr.open("GET", "/api/hog/"+ d.id +"/" + level_api, false); // false makes the request synchronous
+            xhr.send(null);
+
+            if (xhr.status === 200) {
+              const data = JSON.parse(xhr.responseText);
+
+              this.menuContent.push({type: 'text', content: '<b>Description:</b>' + data[0].description , click:null, style: null})
+
+
+            }
+
+
+        }
+      }
+
+      // Display additional data metrics
       if (this.settings.data_metrics.categorical) {
         for (const key of Object.keys(this.settings.data_metrics.categorical)) {
-          this.menuContent += `<br><span >${key}: ${d.data[key]}</span>`
+
+          this.menuContent.push( {type: 'text', content: `<span ><b>${key}:</b> ${d.data[key]}</span>` , click:null, style: null})
+
+
         }
       }
 
       if (this.settings.data_metrics.numerical) {
         for (const key of Object.keys(this.settings.data_metrics.numerical)) {
-          this.menuContent += `<br><span>${key}: ${d.data[key]}</span>`
+          this.menuContent.push( {type: 'text', content:`<span><b>${key}:</b> ${d.data[key]}</span>` , click:null, style: null})
+
         }
       }
 
+      // add Action button
+      if (this.settings.oma) {
+
+        if (this.settings.type_chromosome === 'extant') {
+
+          this.menuContent.push({class: 'btn btn-sm btn-outline-dark', content: 'Open Local Synteny' , click:() => {this.callback_click_synteny(d.id) }, style: 'margin: 8px;text-align: center'})
+          this.menuContent.push({class: 'btn btn-sm btn-outline-dark', content: 'Open Gene details' , click:() => {this.callback_click_detail(d.id) }, style: 'margin: 8px;text-align: center'})
+
+        }
+
+
+        else if (this.settings.type_chromosome === 'ancestral') {
+
+          this.menuContent.push({class: 'btn btn-sm btn-outline-dark', content: 'Open Local Synteny' , click:() => {this.callback_click_synteny(d.id) }, style: 'margin: 8px; text-align: center'})
+          this.menuContent.push({class: 'btn btn-sm btn-outline-dark', content: 'Open Gene details' , click:() => {this.callback_click_detail(d.id) }, style: 'margin: 8px;text-align: center'})
+          this.menuContent.push( {class: 'btn btn-sm btn-outline-dark', content:`Open HOG members` , click: () => {this.callback_click_members(d.id) }, style: 'margin: 8px;text-align: center'})
+
+        }
+
+      }
+
+      // add GOA section
+      if (this.settings.oma) {
+
+        const url = this.settings.type_chromosome === 'ancestral' ? "/api/hog/" + d.id + "/gene_ontology/" + level_api : "/api/protein/" + d.id + "/gene_ontology/"
+
+        var xhr2 = new XMLHttpRequest();
+        xhr2.open("GET", url, false); // false makes the request synchronous
+        xhr2.send(null);
+
+        if (xhr2.status === 200) {
+          const data_annotation = JSON.parse(xhr2.responseText);
+
+          this.menuContent.push( {type: 'text', content:` <hr style="margin-top: 0.1em; margin-bottom: 0.2em"> <b>GO annotations</b>  <hr style="margin-top: 0.1em; margin-bottom: 0.2em">`, click:null, style: null})
+
+          const goa = this.process_annotation(data_annotation)
+
+          var add_annotation_by_aspect = (array_aspect, text) => {
+            var sbio = Array.from(array_aspect).sort(function (a, b) {
+              return parseFloat(b.score) - parseFloat(a.score);
+            })
+            this.menuContent.push( {type: 'text', content:'<b> ' + text + ' </b>: ' , click:null, style: null})
+
+            for (var sbioKey in sbio) {
+              let go = sbio[sbioKey]
+              this.menuContent.push( {type: 'text', content:'<b> - ' + go.GO_term + '</b>: ' + go.name  , click:null, style: null})
+            }
+          }
+
+          add_annotation_by_aspect(goa.bio, 'Biological Process')
+          add_annotation_by_aspect(goa.cell, 'Cellular Component')
+          add_annotation_by_aspect(goa.mol, 'Molecular Function')
+
+
+        }
+      }
+
+
       this.menuVisible = true;
+
+
+
+    },
+    process_annotation(data_annotation){
+
+      var ann_proc = {
+        'bio': new Set(),
+        'cell': new Set(),
+        'mol': new Set()
+      }
+
+    for (const contentKey in data_annotation) {
+
+        var go = data_annotation[contentKey]
+
+        switch (go.aspect) {
+
+          case "cellular_component":
+            ann_proc.cell.add(go);
+            break;
+          case 'biological_process':
+            ann_proc.bio.add(go);
+            break;
+          case 'molecular_function':
+            ann_proc.mol.add(go);
+            break;
+          default:
+            console.log(`${go.aspect} not recognise as annotation category.`);
+
+        }
+
+      }
+
+    return ann_proc
     },
     hideMenu() {
       this.menuVisible = false;
@@ -782,6 +939,8 @@ export default {
     emitEvent(eventType, payload = null) {
       this.$emit('chromosome-event', {eventType, payload});
     },
+
+
   },
   mounted() {
     this.parentWidth = this.$refs['interface_chr_small_container'].offsetWidth - (window.innerWidth * 0.04);
@@ -799,7 +958,7 @@ export default {
       margin_top_svg: 0,
       menuVisible: false,
       menuPosition: {x: 0, y: 0},
-      menuContent: ''
+      menuContent: [],
     }
   },
   emits: ['chromosome-event'],
@@ -846,5 +1005,17 @@ display: block;
   padding: 10px;
   z-index: 1000;
 }
+
+.close-button {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  background: none;
+  border: none;
+  font-size: 1.5em;
+  cursor: pointer;
+}
+
+
 
 </style>
