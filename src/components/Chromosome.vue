@@ -12,6 +12,17 @@
 
        <p  style="font-size: small; align-self: end" id="chromosome_genes_desc" >{{chromosome_genes_desc}}</p>
 
+       <!-- Add button if genes are selected that remove all seelcted genes in this chromsome call unselect all-->
+        <ButtonWithIcon
+            buttonStyle="padding: 6px; height: 29px; margin-right: 8px; margin-left: 8px;"
+            id="unselect_all"
+            icon="null"
+            text="Unselect Genes"
+            @click="this.emitEvent('unselect-all')"
+            v-if="this.get_selected_genes(this.datum.nodes).length > 0"
+        />
+
+
      </div>
 
      <div style="margin-left: auto">
@@ -180,10 +191,21 @@ export default {
       }
     },
     chromosome_genes_desc() {
-      if (this.datum.type === 'ancestral') {
-        return this.datum.nodes.length + " ancestral genes "
+
+      var s = this.get_selected_genes(this.datum.nodes).length
+
+      var desc = this.datum.nodes.length + (this.datum.type === 'ancestral' ? " ancestral genes " : " genes ")
+
+      if (s > 0) {
+        desc += "( " + s + " selected )"
       }
-      return this.datum.nodes.length + " genes - " + this.pretty_locus(this.datum.size_in_bp) + " bp"
+
+      if (this.datum.type === 'extant') {
+        desc += "- " + this.pretty_locus(this.datum.size_in_bp) + " bp"
+      }
+
+      return desc
+
     },
     d_start() {
       return this.settings.type_position === 'loci' ? d => d.start : d => d.index
@@ -841,6 +863,9 @@ export default {
 
 
 
+    },
+    get_selected_genes() {
+      return this.datum.nodes.filter(d => this.isInSelectedRegion(d));
     },
     process_annotation(data_annotation){
 

@@ -7,6 +7,7 @@
   />
 
   <ChromosomeViewer
+      ref="chromosomeViewer"
       v-for="(item,index) in sortedData"
       :key="item.id"
       :datum="item"
@@ -101,6 +102,13 @@ export default {
           break;
         case 'addSelectedRegions':
           this.addSelectedRegions(index, payload)
+          break;
+        case 'unselect-all':
+          this.sortedData[index].selectedRegions = []
+          this.$refs.chromosomeViewer[index].render_excerpt();
+          this.$refs.chromosomeViewer[index].render_mapper();
+          this.$refs.chromosomeViewer[index].render_overview();
+
           break;
       }
     },
