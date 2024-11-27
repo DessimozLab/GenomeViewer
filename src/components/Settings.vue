@@ -30,11 +30,10 @@
       
       <ButtonWithIcon
           class="me-2"
-          v-if='false'
           data-bs-target="#toggleDiv"
           data-bs-toggle="collapse"
-          icon="bi bi-funnel"
-          text="Filter"
+          icon="bi bi-palette"
+          text="Color Legend"
       />
       
       <ButtonWithIcon
@@ -110,8 +109,32 @@
       <VerticalTextDivider text="Excerpt"/>
       
     </div>
-    <div id="toggleDiv" class="collapse text-center" style="margin:24px; padding: 50px; border: #dddddd 1px solid">
-      <b>Place holder for filtering widget.</b>
+    <div id="toggleDiv" class="collapse text-center" style="margin:12px; padding: 24px;">
+      <div >
+
+        <ColorLegend
+            id="color_legend_overview"
+            :extent="this.settings.data_metrics.numerical[localColorAccessorOverview]"
+            :text='localColorAccessorOverview'
+            v-if="this.localColorAccessorOverview"
+        />
+
+        <ColorLegend
+            id="color_legend_overview"
+            :extent="this.settings.data_metrics.numerical[localColorAccessorExcerpt]"
+            :text='localColorAccessorExcerpt'
+            v-if="this.localColorAccessorExcerpt"
+        />
+
+        <ColorLegend
+            id="color_legend_overview"
+            :extent="this.settings.data_metrics.numerical[localColorEdgeAccessorExcerpt]"
+            :text='localColorEdgeAccessorExcerpt'
+            v-if="this.localColorEdgeAccessorExcerpt"
+        />
+
+
+      </div>
     </div>
   </div>
 </template>
@@ -121,6 +144,7 @@ import VerticalTextDivider from './VerticalTextDivider.vue';
 import ButtonWithIcon from './ButtonWithIcon.vue';
 import DropdownButton from './DropdownButton.vue';
 import SelectedGenesModal from './SelectedGenesModal.vue';
+import ColorLegend from './ColorLegend.vue';
 
 
 export default {
@@ -129,7 +153,8 @@ export default {
     VerticalTextDivider,
     ButtonWithIcon,
     DropdownButton,
-    SelectedGenesModal
+    SelectedGenesModal,
+    ColorLegend,
   },
   props: {
     settings: Object,
