@@ -155,20 +155,30 @@ export default {
     // SCALE
     color_scale_excerpt() {
       const extent = this.settings.data_metrics.numerical[this.settings.colorAccessor_excerpt]
-      return d3.scaleLinear([extent.min, extent.max], ['#ffafcc', '#a2d2ff']);
+
+      return d3.scaleSequential()
+          .domain([extent.min, extent.max])
+          .interpolator(d3.interpolateViridis);
+
     },
     color_scale_excerpt_edge() {
       const extent = this.settings.data_metrics.numerical[this.settings.colorAccessor_excerpt_edge]
-      return d3.scaleLinear([extent.min, extent.max], ['#ffafcc', '#a2d2ff']);
+      return d3.scaleSequential()
+          .domain([extent.min, extent.max])
+          .interpolator(d3.interpolateViridis);
     },
     color_scale_overview() {
 
       const extent = this.settings.data_metrics.numerical[this.settings.colorAccessor_overview]
-      return d3.scaleLinear([extent.min, extent.max], ['#ffafcc',  '#a2d2ff']);
+      return d3.scaleSequential()
+          .domain([extent.min, extent.max])
+          .interpolator(d3.interpolateViridis);
     },
     color_scale() {
       const extent = this.settings.data_metrics.numerical[this.settings.colorAccessor_overview]
-      return d3.scaleLinear([extent.min, extent.max], ['#ffafcc', '#a2d2ff']);
+      return d3.scaleSequential()
+          .domain([extent.min, extent.max])
+          .interpolator(d3.interpolateViridis);
     },
 
     // GETTER
@@ -181,14 +191,7 @@ export default {
       return Math.min(...this.datum.nodes.map(d => d[acc]))
     },
     chromosome_name() {
-      if (this.datum.type === 'ancestral') {
-        return "Ancestral Chromosome"
-      }
-      if (!isNaN(this.datum.nodes[0]['chromosome']) || ['X', 'Y', 'MT'].includes(this.datum.nodes[0]['chromosome'])) {
-        return "Chromosome " + this.datum.nodes[0]['chromosome']
-      } else {
-        return this.datum.nodes[0]['chromosome']
-      }
+      return this.datum.name
     },
     chromosome_genes_desc() {
 

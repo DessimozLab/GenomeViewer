@@ -183,7 +183,8 @@ export default {
 
       this.render_data = Object.values(this.jsonData)
           .filter(datum => datum.nodes.length > this.settings.min_genes)
-          .map(processFunction);
+          .sort((a, b) => a.nodes.length + b.nodes.length)
+          .map((element, index) => processFunction(element, index));
 
       //this.add_fake_data()
 
@@ -261,7 +262,7 @@ export default {
       return nodes
 
     },
-    process_ancestral(datum) {
+    process_ancestral(datum, idx) {
 
       datum.domain = null
       datum.currentZoom = d3.zoomIdentity
@@ -270,7 +271,7 @@ export default {
       datum.size_in_genes = datum['nodes'].length
       datum.unique_id = this.generateUniqueId()
       datum.type = 'ancestral'
-      datum.name = "Ancestral Chromosome"
+      datum.name = "Ancestral Chromosome " + (1 + idx)
 
 
       var look_up = {};
