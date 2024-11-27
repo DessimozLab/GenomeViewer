@@ -534,14 +534,14 @@ export default {
                   .attr('class', 'line_between_right')
                   .attr('x1', (d) => scale(this.d_end(d)))
                   .attr('y1', this.settings.svgHeight / 2)
-                  .attr('x2', (d,i) => scale(this.d_end(d)) + (scale(this.d_start(this.datum.nodes[i+1])) - scale(this.d_end(d))) / 2)
+                  .attr('x2', (d,i) => scale(this.d_end(d)) + (scale(this.d_start(this.datum.nodes[i])) - scale(this.d_end(d))) / 2)
                   .attr('y2',this.settings.svgHeight / 2)
                   .attr('stroke', d =>  this.color_edge_excerpt(d))
                   .attr('stroke-width', this.settings.edge_height),
               update => update
                   .attr('x1', (d) => scale(this.d_end(d)))
                   .attr('y1', this.settings.svgHeight / 2)
-                  .attr('x2', (d,i) => scale(this.d_end(d)) + (scale(this.d_start(this.datum.nodes[i+1])) - scale(this.d_end(d))) / 2)
+                  .attr('x2', (d,i) => scale(this.d_end(d)) + (scale(this.d_start(this.datum.nodes[i])) - scale(this.d_end(d))) / 2)
                   .attr('y2',this.settings.svgHeight / 2)
                   .attr('stroke',d =>  this.color_edge_excerpt(d)),
               exit => exit.remove()

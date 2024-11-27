@@ -1,5 +1,7 @@
 <template>
-  <div id="main_container" class="sticky-top">
+  <div id="main_container" :class="{ 'sticky-top offset_oma': this.settings.oma, 'sticky-top': !this.settings.oma}">
+
+
     <div class="d-flex justify-content-end">
 
       <ButtonWithIcon
@@ -230,6 +232,10 @@ export default {
 </script>
 
 <style scoped>
+
+.offset_oma {
+  top: 192px;
+}
 #main_container {
   z-index: 1000;
   background-color: white;

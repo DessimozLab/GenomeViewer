@@ -55,7 +55,7 @@ export default {
         'callback_click_members': null,
 
         // DATUM RELATED SETTINGS
-        exclusion_list: ['id', 'chromosome', 'start', 'end', 'hog_id' ],
+        exclusion_list: ['id', 'chromosome', 'start', 'end', 'hog_id', 'index' ],
         exclusion_list_edges: ['source', 'target', 'id', 'hog_id', 'evidence'],
         data_metrics: null,
 
@@ -185,8 +185,7 @@ export default {
           .filter(datum => datum.nodes.length > this.settings.min_genes)
           .map(processFunction);
 
-      // TODO Remove [for testing purposes only]
-      this.add_fake_data()
+      //this.add_fake_data()
 
       this.analyzeData()
 
@@ -342,6 +341,13 @@ export default {
 
         previous.edge = previous.edges[current];
       }
+
+
+      // Add index to the nodes based on start asc sorting
+      datum.nodes = datum.nodes.sort((a, b) => a.start - b.start).map((d, i) => {
+        d.index = i
+        return d
+      })
 
       datum.nodes = this.get_data_metrics(datum.nodes)
 
