@@ -35,6 +35,13 @@
           icon="bi bi-palette"
           text="Color Legend"
       />
+
+      <ButtonWithIcon
+          class="me-2"
+          icon="bi bi-camera"
+          text="Export SVG"
+          @click="emitEvent('export-svg')"
+      />
       
       <ButtonWithIcon
           id="button_hide"
@@ -113,6 +120,7 @@
       <div >
 
         <ColorLegend
+            ref="colorLegendOverview"
             id="color_legend_overview"
             :extent="this.settings.data_metrics.numerical[localColorAccessorOverview]"
             :text='localColorAccessorOverview'
@@ -120,14 +128,14 @@
         />
 
         <ColorLegend
-            id="color_legend_overview"
+            id="color_legend_local"
             :extent="this.settings.data_metrics.numerical[localColorAccessorExcerpt]"
             :text='localColorAccessorExcerpt'
             v-if="this.localColorAccessorExcerpt"
         />
 
         <ColorLegend
-            id="color_legend_overview"
+            id="color_legend_edge"
             :extent="this.settings.data_metrics.numerical[localColorEdgeAccessorExcerpt]"
             :text='localColorEdgeAccessorExcerpt'
             v-if="this.localColorEdgeAccessorExcerpt"

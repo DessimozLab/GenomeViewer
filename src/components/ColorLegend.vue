@@ -4,7 +4,7 @@
 
 
 
-    <svg class="color-scale" :width="scale.length * 20 + 200" height="20">
+    <svg ref="legend" class="color-scale" :width="scale.length * 20 + 200" height="20">
 
       <text x="0" y="15" font-size="smaller">{{ extent.min }}</text>
 
@@ -27,6 +27,7 @@ export default {
     id:  String,
     extent: Object,
     text: String,
+
   },
   computed: {
     scale() {

@@ -1,6 +1,7 @@
 <template>
 
   <SettingsUI
+      ref="settingsUI"
       :settings="settings"
       :statesColorGenes="statesColorGenes"
       @settings-event="handleSettingsEvent"
@@ -43,7 +44,7 @@ export default {
         // GENERAL SETTINGS
         'type_chromosome': 'extant',
         'sorting_chromosome': 'size',
-        'min_genes': 100,
+        'min_genes': 30, // HUMAN Y chromosome has 47 genes in our dataset
         'type_position': 'loci',
         'hide': false, // detail view
         'mode': 'zoom',
@@ -117,6 +118,9 @@ export default {
         case 'toggle-type':
           this.toggleType();
           break;
+        case 'export-svg':
+          this.exportSVG();
+          break;
         case 'toggle-hide':
           this.toggleHide();
           break;
@@ -174,6 +178,106 @@ export default {
     },
     toggleHide() {
       this.settings.hide = this.settings.hide ? false : true
+    },
+    combineSVGsWithLegend() {
+
+
+
+      const width_name = 200;
+      const width_desc = 200;
+      const gutter = 20;
+      const vgutter = 10;
+
+      const svgElements = this.$refs.chromosomeViewer.map((chromosome,index) => {
+
+        const svgOverview = chromosome.$refs['svg_overview'];
+
+        const combinedSVG = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        combinedSVG.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+        combinedSVG.setAttribute("width", chromosome.parentWidth + 200 + 3*gutter + width_desc);
+        combinedSVG.setAttribute("height", this.settings.svgHeight_overview + 2*vgutter);
+
+        const textElement = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        textElement.setAttribute("y", 3 * vgutter);
+        textElement.textContent = chromosome.chromosome_name;
+
+        // Create a temporary SVG to measure the text width
+        const tempSVG = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        document.body.appendChild(tempSVG);
+        tempSVG.appendChild(textElement);
+        const textWidth = textElement.getBBox().width;
+        document.body.removeChild(tempSVG);
+
+        // Set the x attribute to align the text to the right end
+        textElement.setAttribute("x", width_name - textWidth);
+        combinedSVG.appendChild(textElement);
+
+        const clonedSVG = svgOverview.cloneNode(true);
+        clonedSVG.setAttribute("x",   width_name + gutter);
+        combinedSVG.appendChild(clonedSVG);
+
+        const textElement2 = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        textElement2.setAttribute("y", 3 * vgutter);
+        textElement2.textContent = chromosome.chromosome_genes_desc;
+        textElement2.setAttribute("x", width_name + 2*gutter + svgOverview.width.animVal.value);
+        combinedSVG.appendChild(textElement2);
+
+
+        var offset_legend = 0.5
+        if (this.settings.colorAccessor_overview){
+          offset_legend = 1
+        }
+
+        combinedSVG.setAttribute("y", (offset_legend + index) * (this.settings.svgHeight_overview + 1*gutter));
+
+
+        return combinedSVG;
+      });
+
+      const finalSVG = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      finalSVG.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+
+      finalSVG.setAttribute("width", this.$refs.chromosomeViewer[0].parentWidth + width_name + 3*gutter + width_desc);
+      finalSVG.setAttribute("height", (svgElements.length+3) * (this.settings.svgHeight_overview + 2*vgutter));
+
+      // Add legend if present
+      if (this.settings.colorAccessor_overview){
+        const settingsUI = this.$refs.settingsUI;
+        const colorLegend = settingsUI.$refs.colorLegendOverview;
+        const legend = colorLegend.$refs.legend;
+        const legendSVG = legend.cloneNode(true);
+        legendSVG.setAttribute("x", width_name);
+        legendSVG.setAttribute("y",  gutter);
+        finalSVG.appendChild(legendSVG);
+
+        const textLegend = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        textLegend.setAttribute("y", 2*gutter);
+        textLegend.textContent = colorLegend.text;
+        textLegend.setAttribute("x", width_name - 100);
+        finalSVG.appendChild(textLegend);
+      }
+
+
+      svgElements.forEach((svg) => {
+            finalSVG.appendChild(svg)
+      }
+      );
+
+      return finalSVG;
+    },
+    exportSVG() {
+        const combinedSVG = this.combineSVGsWithLegend();
+        const serializer = new XMLSerializer();
+        const svgBlob = new Blob([serializer.serializeToString(combinedSVG)], { type: "image/svg+xml;charset=utf-8" });
+        const url = URL.createObjectURL(svgBlob);
+
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = "chromosome_viewer_" + this.chromosome_name + ".svg";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
     },
 
     // FACTORY METHODS
