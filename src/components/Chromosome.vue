@@ -674,12 +674,15 @@ export default {
     // SCALE & COLOR
     color_gene_overview(d) {
 
+      /*
       if (!this.settings.hide) {
         var [min, max] = this.get_min_max()
         if (this.d_start(d) >= min && this.d_end(d) <= max) {
           return this.settings.brushed_gene_color
         }
       }
+
+       */
 
       if (this.settings.colorAccessor_overview === null) {
         return this.settings.defaut_gene_color

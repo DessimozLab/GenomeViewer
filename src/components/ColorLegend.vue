@@ -4,13 +4,13 @@
 
 
 
-    <svg ref="legend" class="color-scale" :width="scale.length * 20 + 200" height="20">
+    <svg ref="legend" class="color-scale" :width="scale.length * 4 + 200" height="20">
 
       <text x="0" y="15" font-size="smaller">{{ extent.min }}</text>
 
-      <rect v-for="(color, index) in scale" :key="index" :x="index * 20 + 100" width="20" height="20" :fill="color"></rect>
+      <rect v-for="(color, index) in scale" :key="index" :x="index * 4 + 100" width="4" height="20" :fill="color"></rect>
 
-      <text font-size="smaller" :x="scale.length * 20 + 105" y="15">{{ extent.max }}</text>
+      <text font-size="smaller" :x="scale.length * 4 + 105" y="15">{{ extent.max }}</text>
 
 
     </svg>
@@ -35,9 +35,9 @@ export default {
       const scale =  d3.scaleSequential(d3.interpolateViridis).domain([this.extent.min, this.extent.max])//.ticks(10);
 
       const values = [];
-      const step = (this.extent.max - this.extent.min) / 19; // 19 steps to get 20 values
+      const step = (this.extent.max - this.extent.min) / 99; // 19 steps to get 20 values
 
-      for (let i = 0; i < 20; i++) {
+      for (let i = 0; i < 99; i++) {
         values.push(scale(this.extent.min + i * step));
       }
 

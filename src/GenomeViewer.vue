@@ -59,6 +59,7 @@ export default {
         exclusion_list: ['id', 'chromosome', 'start', 'end', 'hog_id', 'index' ],
         exclusion_list_edges: ['source', 'target', 'id', 'hog_id', 'evidence'],
         data_metrics: null,
+        force_extent_numerical:{},
 
         // OVERVIEW SETTINGS
         'svgHeight_overview': 40,
@@ -180,9 +181,6 @@ export default {
       this.settings.hide = this.settings.hide ? false : true
     },
     combineSVGsWithLegend() {
-
-
-
       const width_name = 200;
       const width_desc = 200;
       const gutter = 20;
@@ -253,7 +251,7 @@ export default {
         const textLegend = document.createElementNS("http://www.w3.org/2000/svg", "text");
         textLegend.setAttribute("y", 2*gutter);
         textLegend.textContent = colorLegend.text;
-        textLegend.setAttribute("x", width_name - 100);
+        textLegend.setAttribute("x", gutter);
         finalSVG.appendChild(textLegend);
       }
 
@@ -574,7 +572,20 @@ export default {
         analysis.categorical[key] = Array.from(analysis.categorical[key]);
       });
 
+      // Force the extent of numerical data if specify in the settings
+
+      if (this.settings.force_extent_numerical)
+      {
+        Object.entries(this.settings.force_extent_numerical).forEach(([key, value]) => {
+          if (analysis.numerical[key]) {
+            analysis.numerical[key].min = value.min;
+            analysis.numerical[key].max = value.max;
+          }
+        });
+      }
+
       this.settings.data_metrics = analysis;
+
     },
 
     // UTILS
