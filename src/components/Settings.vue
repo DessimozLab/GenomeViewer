@@ -141,6 +141,20 @@
             v-if="this.localColorEdgeAccessorExcerpt"
         />
 
+        <ColorLegendVertical
+            id="height_legend_overview"
+            :extent="this.settings.data_metrics.numerical[localHeightAccessorOverview]"
+            :text='localHeightAccessorOverview'
+            v-if="this.localHeightAccessorOverview"
+        />
+
+        <ColorLegendVertical
+            id="height_legend_excerpt"
+            :extent="this.settings.data_metrics.numerical[localHeightAccessorExcerpt]"
+            :text='localHeightAccessorExcerpt'
+            v-if="this.localHeightAccessorExcerpt"
+        />
+
 
       </div>
     </div>
@@ -153,6 +167,7 @@ import ButtonWithIcon from './ButtonWithIcon.vue';
 import DropdownButton from './DropdownButton.vue';
 import SelectedGenesModal from './SelectedGenesModal.vue';
 import ColorLegend from './ColorLegend.vue';
+import ColorLegendVertical from './ColorLegendVertical.vue';
 
 
 export default {
@@ -163,6 +178,7 @@ export default {
     DropdownButton,
     SelectedGenesModal,
     ColorLegend,
+    ColorLegendVertical,
   },
   props: {
     settings: Object,
