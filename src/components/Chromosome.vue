@@ -89,27 +89,29 @@ export default {
   watch: {
     'datum.unique_id': {
       handler: function () {
-        this.render_overview()
-        this.render_mapper()
-        this.render_excerpt()
+        this.update_renders()
+      },
+      deep: true
+    },
+    'settings.type_position': {
+      handler: function () {
+        this.CurrentWidth = this.getCurrentWidth()
+        this.update_renders()
 
       },
       deep: true
     },
     'settings': {
       handler: function () {
-        this.render_overview()
-        this.render_mapper()
-        this.render_excerpt()
+        this.update_renders()
 
       },
       deep: true
     },
     'settings.mode': {
       handler: function () {
-        this.render_overview()
-        this.render_mapper()
-        this.render_excerpt()
+        this.CurrentWidth = this.getCurrentWidth()
+        this.update_renders()
 
       },
       deep: true
@@ -218,6 +220,11 @@ export default {
     },
   },
   methods: {
+    update_renders() {
+      this.render_overview()
+      this.render_mapper()
+      this.render_excerpt()
+    },
     callback_click_synteny(test) {
       return this.settings.callback_click_synteny(test)
     },
@@ -962,8 +969,8 @@ export default {
     get_x1_edge(scale, d, i) {
       return scale(this.d_start(d)) - (scale(this.d_start(d)) - scale(this.d_end(this.datum.nodes[i]))) / 2
     },
-    get_parentWidth() {
-      return (this.$refs['interface_chr_small_container'].offsetWidth * (this.domain_max_current / this.domain_max)) - (window.innerWidth * 0.04);
+    getCurrentWidth() {
+      return (this.parentWidth * (this.domain_max_current / this.domain_max))
     },
 
     // EVENTS
@@ -975,8 +982,7 @@ export default {
   },
   mounted() {
     this.parentWidth = this.$refs['interface_chr_small_container'].offsetWidth - (window.innerWidth * 0.04);
-    this.CurrentWidth = this.get_parentWidth();
-
+    this.CurrentWidth = this.getCurrentWidth()
     this.render_excerpt();
     this.render_mapper();
     this.render_overview();
