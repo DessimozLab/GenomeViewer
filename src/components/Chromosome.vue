@@ -464,6 +464,7 @@ export default {
           .data(this.get_min_max()) // Bind the data to the rectangles
           .join(
               enter => enter.append('line')
+                  .attr('class', 'line_extent_overview')
                   .attr('x1', d => scaleline(d))
                   .attr('y1', 0)
                   .attr('x2', d => scaleline(d))

@@ -2,7 +2,7 @@
 
   <SettingsUI
       ref="settingsUI"
-      :settings="settings"
+      :settings_base="settings"
       :statesColorGenes="statesColorGenes"
       @settings-event="handleSettingsEvent"
   />
@@ -212,6 +212,9 @@ export default {
 
         const clonedSVG = svgOverview.cloneNode(true);
         clonedSVG.setAttribute("x",   width_name + gutter);
+        clonedSVG.querySelectorAll('.line_extent_overview').forEach(line => {
+          line.style.display = 'none';
+        });
         combinedSVG.appendChild(clonedSVG);
 
         const textElement2 = document.createElementNS("http://www.w3.org/2000/svg", "text");
@@ -222,12 +225,10 @@ export default {
 
 
         var offset_legend = 0.5
-        if (this.settings.colorAccessor_overview){
-          offset_legend = 1
-        }
+        if (this.settings.colorAccessor_overview){ offset_legend += 1 }
+        if (this.settings.heightAccessor_overview){ offset_legend += 1.5 }
 
-        combinedSVG.setAttribute("y", (offset_legend + index) * (this.settings.svgHeight_overview + 1*gutter));
-
+        combinedSVG.setAttribute("y", (offset_legend + index) * (this.settings.svgHeight_overview + gutter));
 
         return combinedSVG;
       });
@@ -240,25 +241,56 @@ export default {
 
       // Add legend if present
       if (this.settings.colorAccessor_overview){
+
         const settingsUI = this.$refs.settingsUI;
         const colorLegend = settingsUI.$refs.colorLegendOverview;
         const legend = colorLegend.$refs.legend;
+
         const legendSVG = legend.cloneNode(true);
-        legendSVG.setAttribute("x", width_name);
+        legendSVG.setAttribute("x", width_name + gutter);
         legendSVG.setAttribute("y",  gutter);
         finalSVG.appendChild(legendSVG);
 
+        // min extent
         const textLegend = document.createElementNS("http://www.w3.org/2000/svg", "text");
-        textLegend.setAttribute("y", 2*gutter);
-        textLegend.textContent = colorLegend.text;
-        textLegend.setAttribute("x", gutter);
+        textLegend.setAttribute("y", gutter + 40);
+        textLegend.textContent = colorLegend.min_base;
+        textLegend.setAttribute("x", width_name);
+        textLegend.setAttribute("text-anchor", "end");
+        textLegend.setAttribute("font-size", "smaller");
         finalSVG.appendChild(textLegend);
+
+        // max extent
+        const textLegend2 = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        textLegend2.setAttribute("y", gutter + 40);
+        textLegend2.textContent = colorLegend.max_base;
+        textLegend.setAttribute("font-size", "smaller");
+        textLegend2.setAttribute("x", width_name + gutter + legend.width.animVal.value);
+        finalSVG.appendChild(textLegend2);
+
+      }
+
+      if (this.settings.heightAccessor_overview){
+
+        var offset_legend = this.settings.colorAccessor_overview ? 2*gutter + 20 : 0
+
+        const settingsUI = this.$refs.settingsUI;
+        const heightLegend = settingsUI.$refs.heightLegendOverview;
+        const legend = heightLegend.$refs.legend;
+
+        const legendSVG = legend.cloneNode(true);
+        legendSVG.setAttribute("x", width_name + gutter);
+        legendSVG.setAttribute("y",  offset_legend + gutter);
+        finalSVG.appendChild(legendSVG);
+
       }
 
 
       svgElements.forEach((svg) => {
             finalSVG.appendChild(svg)
       }
+
+
       );
 
       return finalSVG;

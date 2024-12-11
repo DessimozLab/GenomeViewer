@@ -122,37 +122,49 @@
         <ColorLegend
             ref="colorLegendOverview"
             id="color_legend_overview"
-            :extent="this.settings.data_metrics.numerical[localColorAccessorOverview]"
+            :min_base="this.settings.data_metrics.numerical[localColorAccessorOverview].min"
+            :max_base="this.settings.data_metrics.numerical[localColorAccessorOverview].max"
             :text='localColorAccessorOverview'
             v-if="this.localColorAccessorOverview"
+            @update-extent="updateExtent"
         />
 
         <ColorLegend
             id="color_legend_local"
-            :extent="this.settings.data_metrics.numerical[localColorAccessorExcerpt]"
+            :min_base="this.settings.data_metrics.numerical[localColorAccessorExcerpt].min"
+            :max_base="this.settings.data_metrics.numerical[localColorAccessorExcerpt].max"
             :text='localColorAccessorExcerpt'
             v-if="this.localColorAccessorExcerpt"
+            @update-extent="updateExtent"
         />
 
         <ColorLegend
             id="color_legend_edge"
-            :extent="this.settings.data_metrics.numerical[localColorEdgeAccessorExcerpt]"
+            :min_base="this.settings.data_metrics.numerical[localColorEdgeAccessorExcerpt].min"
+            :max_base="this.settings.data_metrics.numerical[localColorEdgeAccessorExcerpt].max"
             :text='localColorEdgeAccessorExcerpt'
             v-if="this.localColorEdgeAccessorExcerpt"
+            @update-extent="updateExtent"
         />
 
         <ColorLegendVertical
+            ref="heightLegendOverview"
             id="height_legend_overview"
-            :extent="this.settings.data_metrics.numerical[localHeightAccessorOverview]"
+
+            :min_base="this.settings.data_metrics.numerical[localHeightAccessorOverview].min"
+            :max_base="this.settings.data_metrics.numerical[localHeightAccessorOverview].max"
             :text='localHeightAccessorOverview'
             v-if="this.localHeightAccessorOverview"
+            @update-extent="updateExtent"
         />
 
         <ColorLegendVertical
             id="height_legend_excerpt"
-            :extent="this.settings.data_metrics.numerical[localHeightAccessorExcerpt]"
+            :min_base="this.settings.data_metrics.numerical[localHeightAccessorExcerpt].min"
+            :max_base="this.settings.data_metrics.numerical[localHeightAccessorExcerpt].max"
             :text='localHeightAccessorExcerpt'
             v-if="this.localHeightAccessorExcerpt"
+            @update-extent="updateExtent"
         />
 
 
@@ -181,17 +193,18 @@ export default {
     ColorLegendVertical,
   },
   props: {
-    settings: Object,
+    settings_base: Object,
     statesColorGenes: Array,
   },
   data() {
     return {
       isModalVisible: false,
-      localColorAccessorOverview: this.settings.colorAccessor_overview,
-      localHeightAccessorOverview: this.settings.heightAccessor_overview,
-      localColorAccessorExcerpt: this.settings.colorAccessor_excerpt,
-      localHeightAccessorExcerpt: this.settings.heightAccessor_excerpt,
-      localColorEdgeAccessorExcerpt : this.settings.colorAccessor_excerpt_edge
+      settings : this.settings_base,
+      localColorAccessorOverview: this.settings_base.colorAccessor_overview,
+      localHeightAccessorOverview: this.settings_base.heightAccessor_overview,
+      localColorAccessorExcerpt: this.settings_base.colorAccessor_excerpt,
+      localHeightAccessorExcerpt: this.settings_base.heightAccessor_excerpt,
+      localColorEdgeAccessorExcerpt : this.settings_base.colorAccessor_excerpt_edge
     };
   },
   watch: {
@@ -273,6 +286,11 @@ export default {
     },
     hideModal() {
       this.isModalVisible = false;
+    },
+    updateExtent({ min, max, steps }) {
+      this.settings.data_metrics.numerical[this.localColorAccessorOverview].min = min;
+      this.settings.data_metrics.numerical[this.localColorAccessorOverview].max = max;
+      this.settings.data_metrics.numerical[this.localColorAccessorOverview].steps = steps;
     }
 
   },
