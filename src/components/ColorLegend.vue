@@ -31,7 +31,7 @@ export default {
     text: String,
     min_base: Number,
     max_base: Number,
-
+    settings: Object
   },
   data() {
 
@@ -43,8 +43,7 @@ export default {
   },
   computed: {
     scale() {
-
-      const scale =  d3.scaleSequential(d3.interpolateViridis).domain([this.min_base, this.max_base])//.ticks(10);
+      const scale =  d3.scaleSequential(this.settings.color_scheme_list[this.settings.color_scheme]).domain([this.min_base, this.max_base])//.ticks(10);
 
       const values = [];
       const step = (this.max_base - this.min_base) / this.steps; // 19 steps to get 20 values

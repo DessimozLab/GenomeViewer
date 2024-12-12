@@ -134,6 +134,13 @@ export default {
       },
       deep: true
     },
+    'settings.color_scheme': {
+      handler: function () {
+        this.color_scheme = this.settings.color_scheme_list[this.settings.color_scheme]
+        this.update_renders()
+      },
+      deep: true
+    },
     'settings.colorAccessor_excerpt': {
       handler: function () {
         this.render_excerpt()
@@ -157,30 +164,27 @@ export default {
     // SCALE
     color_scale_excerpt() {
       const extent = this.settings.data_metrics.numerical[this.settings.colorAccessor_excerpt]
-
       return d3.scaleSequential()
           .domain([extent.min, extent.max])
-          .interpolator(d3.interpolateViridis);
-
+          .interpolator(this.color_scheme);
     },
     color_scale_excerpt_edge() {
       const extent = this.settings.data_metrics.numerical[this.settings.colorAccessor_excerpt_edge]
       return d3.scaleSequential()
           .domain([extent.min, extent.max])
-          .interpolator(d3.interpolateViridis);
+          .interpolator(this.color_scheme);
     },
     color_scale_overview() {
-
       const extent = this.settings.data_metrics.numerical[this.settings.colorAccessor_overview]
       return d3.scaleSequential()
           .domain([extent.min, extent.max])
-          .interpolator(d3.interpolateViridis);
+          .interpolator(this.color_scheme);
     },
     color_scale() {
       const extent = this.settings.data_metrics.numerical[this.settings.colorAccessor_overview]
       return d3.scaleSequential()
           .domain([extent.min, extent.max])
-          .interpolator(d3.interpolateViridis);
+          .interpolator(this.color_scheme);
     },
 
     // GETTER
@@ -682,16 +686,6 @@ export default {
     // SCALE & COLOR
     color_gene_overview(d) {
 
-      /*
-      if (!this.settings.hide) {
-        var [min, max] = this.get_min_max()
-        if (this.d_start(d) >= min && this.d_end(d) <= max) {
-          return this.settings.brushed_gene_color
-        }
-      }
-
-       */
-
       if (this.settings.colorAccessor_overview === null) {
         return this.settings.defaut_gene_color
       }
@@ -997,6 +991,7 @@ export default {
       menuVisible: false,
       menuPosition: {x: 0, y: 0},
       menuContent: [],
+      color_scheme: this.settings.color_scheme_list[this.settings.color_scheme]
     }
   },
   emits: ['chromosome-event'],

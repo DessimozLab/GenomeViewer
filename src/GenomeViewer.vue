@@ -24,6 +24,7 @@ import 'bootstrap-icons/font/bootstrap-icons.css'
 import 'bootstrap/dist/css/bootstrap.css'
 import 'bootstrap'
 import * as d3 from 'd3';
+import * as d3_chrome from 'd3-scale-chromatic';
 
 import SettingsUI from './components/Settings.vue'
 import ChromosomeViewer from './components/Chromosome.vue'
@@ -55,6 +56,14 @@ export default {
         'callback_click_detail': null,
         'callback_click_members': null,
 
+        // COLOR
+        color_scheme: 'Viridis',
+        color_scheme_list: Object.keys(d3_chrome)
+            .filter(key => key.startsWith('interpolate'))
+            .reduce((acc, key) => {
+              acc[key.replace('interpolate', '')] = d3[key];
+              return acc;
+            }, {}),
         // DATUM RELATED SETTINGS
         exclusion_list: ['id', 'chromosome', 'start', 'end', 'hog_id', 'index' ],
         exclusion_list_edges: ['source', 'target', 'id', 'hog_id', 'evidence'],
@@ -146,11 +155,17 @@ export default {
         case 'update-color-excerpt_edge':
           this.toggleColorExcerpt_edge(payload);
           break;
+        case 'update-color-scheme':
+          this.toggleColorScheme(payload);
+          break;
 
 
 
 
       }
+    },
+    toggleColorScheme(selectedOption) {
+      this.settings.color_scheme = selectedOption;
     },
     toggleColorExcerpt(selectedOption) {
       this.settings.colorAccessor_excerpt = selectedOption;

@@ -32,7 +32,7 @@
           class="me-2"
           data-bs-target="#toggleDiv"
           data-bs-toggle="collapse"
-          icon="bi bi-palette"
+          icon="bi bi-highlights"
           text="Color Legend"
       />
 
@@ -62,6 +62,17 @@
           :text="modeText"
           icon="bi bi-hand-index"
           @click="emitEvent('toggle-mode')"
+      />
+
+      <DropdownButton
+          id="button_color_scheme"
+          v-model="localColorScheme"
+          :options="localColorList"
+          icon="bi bi-palette2"
+          text="Color Scheme"
+          :no_default="true"
+          :no_indicator="true"
+          @change="emitEvent('update-color-scheme', $event)"
       />
       
       <VerticalTextDivider text="General"/>
@@ -122,6 +133,7 @@
         <ColorLegend
             ref="colorLegendOverview"
             id="color_legend_overview"
+            :settings = "this.settings"
             :min_base="this.settings.data_metrics.numerical[localColorAccessorOverview].min"
             :max_base="this.settings.data_metrics.numerical[localColorAccessorOverview].max"
             :text='localColorAccessorOverview'
@@ -131,6 +143,7 @@
 
         <ColorLegend
             id="color_legend_local"
+            :settings = "this.settings"
             :min_base="this.settings.data_metrics.numerical[localColorAccessorExcerpt].min"
             :max_base="this.settings.data_metrics.numerical[localColorAccessorExcerpt].max"
             :text='localColorAccessorExcerpt'
@@ -140,6 +153,7 @@
 
         <ColorLegend
             id="color_legend_edge"
+            :settings = "this.settings"
             :min_base="this.settings.data_metrics.numerical[localColorEdgeAccessorExcerpt].min"
             :max_base="this.settings.data_metrics.numerical[localColorEdgeAccessorExcerpt].max"
             :text='localColorEdgeAccessorExcerpt'
@@ -150,7 +164,7 @@
         <ColorLegendVertical
             ref="heightLegendOverview"
             id="height_legend_overview"
-
+            :settings = "this.settings"
             :min_base="this.settings.data_metrics.numerical[localHeightAccessorOverview].min"
             :max_base="this.settings.data_metrics.numerical[localHeightAccessorOverview].max"
             :text='localHeightAccessorOverview'
@@ -160,6 +174,7 @@
 
         <ColorLegendVertical
             id="height_legend_excerpt"
+            :settings = "this.settings"
             :min_base="this.settings.data_metrics.numerical[localHeightAccessorExcerpt].min"
             :max_base="this.settings.data_metrics.numerical[localHeightAccessorExcerpt].max"
             :text='localHeightAccessorExcerpt'
@@ -204,7 +219,9 @@ export default {
       localHeightAccessorOverview: this.settings_base.heightAccessor_overview,
       localColorAccessorExcerpt: this.settings_base.colorAccessor_excerpt,
       localHeightAccessorExcerpt: this.settings_base.heightAccessor_excerpt,
-      localColorEdgeAccessorExcerpt : this.settings_base.colorAccessor_excerpt_edge
+      localColorEdgeAccessorExcerpt : this.settings_base.colorAccessor_excerpt_edge,
+      localColorScheme: this.settings_base.colorScheme,
+      localColorList: Object.keys(this.settings_base.color_scheme_list),
     };
   },
   watch: {
@@ -222,6 +239,9 @@ export default {
     },
     localColorEdgeAccessorExcerpt(newVal) {
       this.emitEvent('update-color-excerpt_edge', newVal);
+    },
+    localColorScheme(newVal) {
+      this.emitEvent('update-color-scheme', newVal);
     },
   },
   computed: {

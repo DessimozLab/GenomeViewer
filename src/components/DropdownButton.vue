@@ -4,12 +4,12 @@
       <i :class="icon"></i>
       <span :style="spanStyle">{{ text }} <i class="bi bi-caret-down"></i></span>
 
-      <span v-if="isValueSelected"  class=" indicator_changed badge bg-danger position-absolute top-0  translate-middle p-1 border border-light rounded-circle">
+      <span v-if="isValueSelected && !no_indicator"  class=" indicator_changed badge bg-danger position-absolute top-0  translate-middle p-1 border border-light rounded-circle">
         <span class="visually-hidden">New alerts</span>
       </span>
 
     </button>
-    <ul class="dropdown-menu" :aria-labelledby="id">
+    <ul class="dropdown-menu scrollable-dropdown" :aria-labelledby="id">
       <li v-for="(option, index) in option_w_null" :key="index" class="dropdown-item">
         <input type="radio" :id="id + index" :value="option" :checked="modelValue === option" @change="$emit('update:modelValue', option)">
         <label :for="id + index">&nbsp;{{ option == null ? 'Default' : option }}</label>
@@ -25,6 +25,14 @@ export default {
     id: String,
     icon: String,
     text: String,
+    no_default: {
+      type: Boolean,
+      default: false,
+    },
+    no_indicator: {
+      type: Boolean,
+      default: false,
+    },
     options: Array,
     modelValue: [String, Number, Boolean, Object],
     spanStyle: {
@@ -34,6 +42,9 @@ export default {
   },
   computed: {
     option_w_null() {
+      if (this.no_default) {
+        return this.options;
+      }
       return [null, ...this.options];
     },
     isValueSelected() {
@@ -51,5 +62,9 @@ export default {
   left: 88%;
 }
 
+.scrollable-dropdown {
+  max-height: 400px; /* Set the maximum height */
+  overflow-y: auto; /* Enable vertical scrolling */
+}
 
 </style>
