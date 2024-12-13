@@ -93,7 +93,7 @@ export default {
       },
       deep: true
     },
-    'settings.type_position': {
+    'domain_max': {
       handler: function () {
         this.CurrentWidth = this.getCurrentWidth()
         this.update_renders()
