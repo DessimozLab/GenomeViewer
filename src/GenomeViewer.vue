@@ -69,6 +69,7 @@ export default {
         exclusion_list_edges: ['source', 'target', 'id', 'hog_id', 'evidence'],
         data_metrics: null,
         force_extent_numerical:{},
+        remove_outliers_legend: [], // this will override the force_extent_numerical
 
         // OVERVIEW SETTINGS
         'svgHeight_overview': 40,
@@ -588,6 +589,8 @@ export default {
         categorical: {}
       };
 
+      var data_tmp = {};
+
       // scan all the data and get the min and max for numerical data and unique values for categorical data
       this.render_data.forEach(datum => {
         datum.nodes.forEach(node => {
@@ -598,12 +601,32 @@ export default {
               return;
             }
             if (typeof value === 'number') {
+
+              // create the key binding in dict if empty
               if (!analysis.numerical[key]) {
+
                 analysis.numerical[key] = { min: value, max: value };
+
+                // if key in remove outliers, add to the list
+                if (this.settings.remove_outliers_legend.includes(key)) {
+                  data_tmp[key] = []
+                  data_tmp[key].push(value)
+                }
+
               } else {
                 analysis.numerical[key].min = Math.min(analysis.numerical[key].min, value);
                 analysis.numerical[key].max = Math.max(analysis.numerical[key].max, value);
+
+                if (this.settings.remove_outliers_legend.includes(key)) {
+                  data_tmp[key] = []
+                  data_tmp[key].push(value)
+                }
+
+
+
               }
+
+
             } else if (typeof value === 'string') {
               if (!analysis.categorical[key]) {
                 analysis.categorical[key] = new Set();
@@ -621,19 +644,53 @@ export default {
 
       // Force the extent of numerical data if specify in the settings
 
-      if (this.settings.force_extent_numerical)
-      {
-        Object.entries(this.settings.force_extent_numerical).forEach(([key, value]) => {
-          if (analysis.numerical[key]) {
-            analysis.numerical[key].min = value.min;
-            analysis.numerical[key].max = value.max;
-          }
-        });
-      }
+      Object.keys(analysis.numerical).forEach(key => {
+
+        if (this.settings.remove_outliers_legend.includes(key)) {
+          analysis.numerical[key].min = Math.min(...this.filterOutliers(data_tmp[key]))
+          analysis.numerical[key].max = Math.max(...this.filterOutliers(data_tmp[key]))
+        }
+        else if (this.settings.force_extent_numerical && this.settings.force_extent_numerical[key]) {
+            analysis.numerical[key].min = this.settings.force_extent_numerical[key].min;
+            analysis.numerical[key].max = this.settings.force_extent_numerical[key].max;
+        }
+
+      });
 
       this.settings.data_metrics = analysis;
 
     },
+    filterOutliers(someArray) {
+
+  // Copy the values, rather than operating on references to existing values
+  var values = someArray.concat();
+
+  // Then sort
+  values.sort( function(a, b) {
+    return a - b;
+  });
+
+  /* Then find a generous IQR. This is generous because if (values.length / 4)
+   * is not an int, then really you should average the two elements on either
+   * side to find q1.
+   */
+  var q1 = values[Math.floor((values.length / 4))];
+  // Likewise for q3.
+  var q3 = values[Math.ceil((values.length * (3 / 4)))];
+  var iqr = q3 - q1;
+
+  // Then find min and max values
+  var maxValue = q3 + iqr*1.5;
+  var minValue = q1 - iqr*1.5;
+
+  // Then filter anything beyond or beneath these values.
+  var filteredValues = values.filter(function(x) {
+    return (x <= maxValue) && (x >= minValue);
+  });
+
+  // Then return
+  return filteredValues;
+},
 
     // UTILS
     generateUniqueId() {
