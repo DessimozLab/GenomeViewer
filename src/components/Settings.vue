@@ -148,7 +148,7 @@
             :min_base="this.settings.data_metrics.numerical[localColorAccessorExcerpt].min"
             :max_base="this.settings.data_metrics.numerical[localColorAccessorExcerpt].max"
             :text='localColorAccessorExcerpt'
-            v-if="this.localColorAccessorExcerpt"
+            v-if="this.localColorAccessorExcerpt && localColorAccessorExcerpt !== localColorAccessorOverview"
             @update-extent="updateExtent"
         />
 
@@ -158,7 +158,7 @@
             :min_base="this.settings.data_metrics.numerical[localColorEdgeAccessorExcerpt].min"
             :max_base="this.settings.data_metrics.numerical[localColorEdgeAccessorExcerpt].max"
             :text='localColorEdgeAccessorExcerpt'
-            v-if="this.localColorEdgeAccessorExcerpt"
+            v-if="this.localColorEdgeAccessorExcerpt && localColorEdgeAccessorExcerpt !== localColorAccessorOverview && localColorEdgeAccessorExcerpt !== localColorAccessorExcerpt"
             @update-extent="updateExtent"
         />
 
@@ -169,7 +169,7 @@
             :min_base="this.settings.data_metrics.numerical[localHeightAccessorOverview].min"
             :max_base="this.settings.data_metrics.numerical[localHeightAccessorOverview].max"
             :text='localHeightAccessorOverview'
-            v-if="this.localHeightAccessorOverview"
+            v-if="this.localHeightAccessorOverview && localHeightAccessorOverview !== localColorEdgeAccessorExcerpt && localHeightAccessorOverview !== localColorAccessorOverview && localHeightAccessorOverview !== localColorAccessorExcerpt"
             @update-extent="updateExtent"
         />
 
@@ -179,7 +179,7 @@
             :min_base="this.settings.data_metrics.numerical[localHeightAccessorExcerpt].min"
             :max_base="this.settings.data_metrics.numerical[localHeightAccessorExcerpt].max"
             :text='localHeightAccessorExcerpt'
-            v-if="this.localHeightAccessorExcerpt"
+            v-if="this.localHeightAccessorExcerpt && localHeightAccessorOverview !== localHeightAccessorExcerpt "
             @update-extent="updateExtent"
         />
 
@@ -308,10 +308,10 @@ export default {
     hideModal() {
       this.isModalVisible = false;
     },
-    updateExtent({ min, max, steps }) {
-      this.settings.data_metrics.numerical[this.localColorAccessorOverview].min = min;
-      this.settings.data_metrics.numerical[this.localColorAccessorOverview].max = max;
-      this.settings.data_metrics.numerical[this.localColorAccessorOverview].steps = steps;
+    updateExtent({ min, max, steps, accessor  }) {
+      this.settings.data_metrics.numerical[accessor].min = min;
+      this.settings.data_metrics.numerical[accessor].max = max;
+      this.settings.data_metrics.numerical[accessor].steps = steps;
     }
 
   },

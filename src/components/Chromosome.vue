@@ -87,6 +87,13 @@ export default {
     domain_max: Number,
   },
   watch: {
+
+    'settings.data_metrics.numerical': {
+      handler: function () {
+        this.update_renders()
+      },
+      deep: true
+    },
     'datum.unique_id': {
       handler: function () {
         this.update_renders()
@@ -124,13 +131,13 @@ export default {
     },
     'settings.colorAccessor_overview': {
       handler: function () {
-        this.render_overview()
+        this.update_renders()
       },
       deep: true,
     },
     'settings.heightAccessor_overview': {
       handler: function () {
-        this.render_overview()
+        this.update_renders()
       },
       deep: true
     },
@@ -143,19 +150,19 @@ export default {
     },
     'settings.colorAccessor_excerpt': {
       handler: function () {
-        this.render_excerpt()
+        this.update_renders()
       },
       deep: true,
     },
     'settings.colorAccessor_excerpt_edge': {
       handler: function () {
-        this.render_excerpt()
+        this.update_renders()
       },
       deep: true,
     },
     'settings.heightAccessor_excerpt': {
       handler: function () {
-        this.render_excerpt()
+        this.update_renders()
       },
       deep: true
     },
@@ -312,7 +319,7 @@ export default {
     // RENDER
     render_mapper() {
 
-      const scale_overview = d3.scaleLinear().domain([this.domain_min_current, this.domain_max_current]).range([0, this.CurrentWidth - 2]);
+      const scale_overview = d3.scaleLinear().clamp(true).domain([this.domain_min_current, this.domain_max_current]).range([0, this.CurrentWidth - 2]);
 
       var svg_mapper = d3.select(this.$refs.svg_mapper)
 
@@ -395,7 +402,7 @@ export default {
 
 
       // add line beneath rectangles section to show wich part is selected in excerpt
-      const scaleline = d3.scaleLinear().domain([this.domain_min_current, this.domain_max_current]).range([0, this.CurrentWidth - 2]);
+      const scaleline = d3.scaleLinear().clamp(true).domain([this.domain_min_current, this.domain_max_current]).range([0, this.CurrentWidth - 2]);
 
       svg_mapper.selectAll('.line_selected')
           .data(this.datum.selectedRegions) // Bind the data to the rectangles
@@ -419,7 +426,7 @@ export default {
     },
     render_overview( ) {
 
-      const scale = d3.scaleLinear().domain([this.domain_min_current, this.domain_max_current]).range([0, this.CurrentWidth]);
+      const scale = d3.scaleLinear().clamp(true).domain([this.domain_min_current, this.domain_max_current]).range([0, this.CurrentWidth]);
       const scale_height = this.set_height_gene_overview_scale()
 
       var svg_overview = d3.select(this.$refs.svg_overview)
@@ -463,7 +470,7 @@ export default {
               exit => exit.remove() // For outgoing data, remove the rectangles
           );
 
-      const scaleline = d3.scaleLinear().domain([this.domain_min_current, this.domain_max_current]).range([0, this.CurrentWidth - 2]);
+      const scaleline = d3.scaleLinear().clamp(true).domain([this.domain_min_current, this.domain_max_current]).range([0, this.CurrentWidth - 2]);
       svg_overview.selectAll('line')
           .data(this.get_min_max()) // Bind the data to the rectangles
           .join(
@@ -492,7 +499,7 @@ export default {
     },
     render_excerpt( ) {
 
-      const scale = d3.scaleLinear().domain([this.domain_min_current, this.domain_max_current]).range([0, this.parentWidth]);
+      const scale = d3.scaleLinear().clamp(true).domain([this.domain_min_current, this.domain_max_current]).range([0, this.parentWidth]);
 
       const scale_height = this.set_height_gene_excerpt_scale()
 
@@ -676,7 +683,7 @@ export default {
         return this.settings.svgHeight_overview;
       } else {
         const extent = this.settings.data_metrics.numerical[this.settings.heightAccessor_overview]
-        return d3.scaleLinear().domain([extent.min, extent.max]).range([0, this.settings.svgHeight_overview]);
+        return d3.scaleLinear().clamp(true).domain([extent.min, extent.max]).range([0, this.settings.svgHeight_overview]);
       }
 
     },
@@ -714,7 +721,7 @@ export default {
 
       else {
         const extent = this.settings.data_metrics.numerical[this.settings.heightAccessor_excerpt]
-        return d3.scaleLinear().domain([extent.min, extent.max]).range([0, this.settings.svgHeight]);
+        return d3.scaleLinear().clamp(true).domain([extent.min, extent.max]).range([0, this.settings.svgHeight]);
       }
 
     },
@@ -913,7 +920,7 @@ export default {
       // THIS function is used to set the anchor position of the text for mapper
 
       var [min, max] = this.get_min_max()
-      var scale = d3.scaleLinear().domain([0, this.domain_max]).range([0, this.CurrentWidth]);
+      var scale = d3.scaleLinear().clamp(true).domain([0, this.domain_max]).range([0, this.CurrentWidth]);
       var minPixel = scale(min);
       var maxPixel = scale(max);
       var threshold = 150; // Set a threshold for the minimum pixel distance to avoid overlap

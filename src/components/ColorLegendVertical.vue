@@ -46,7 +46,15 @@ export default {
   },
   methods: {
     updateExtent() {
-      this.$emit('update-extent', { min: this.min, max: this.max, steps: this.steps });
+      this.$emit('update-extent', { min: this.min, max: this.max, steps: this.steps,accessor:this.text });
+    }
+  },
+  watch: {
+    min_base(newVal) {
+      this.min = newVal;
+    },
+    max_base(newVal) {
+      this.max = newVal;
     }
   }
 }
