@@ -547,35 +547,15 @@ export default {
           .join(
               enter => enter.append('line')
                   .attr('class', 'line_between_right')
-                  .attr('x1', (d) => scale(this.d_end(d)))
+                  .attr('x1', (d) => scale(this.d_start(d)))
                   .attr('y1', this.settings.svgHeight / 2)
-                  .attr('x2', (d,i) => scale(this.d_end(d)) + (scale(this.d_start(this.datum.nodes[i])) - scale(this.d_end(d))) / 2)
+                  .attr('x2', (d,i) => scale(this.d_start(this.datum.nodes[i])))
                   .attr('y2',this.settings.svgHeight / 2)
                   .attr('stroke', d =>  this.color_edge_excerpt(d))
                   .attr('stroke-width', this.settings.edge_height),
               update => update
-                  .attr('x1', (d) => scale(this.d_end(d)))
-                  .attr('y1', this.settings.svgHeight / 2)
-                  .attr('x2', (d,i) => scale(this.d_end(d)) + (scale(this.d_start(this.datum.nodes[i])) - scale(this.d_end(d))) / 2)
-                  .attr('y2',this.settings.svgHeight / 2)
-                  .attr('stroke',d =>  this.color_edge_excerpt(d)),
-              exit => exit.remove()
-          );
-
-      svg_excerpt.selectAll('.line_between_left')
-          .data(this.datum.nodes.slice(1, this.datum.nodes.length))
-          .join(
-              enter => enter.append('line')
-                  .attr('class', 'line_between_left')
-                  .attr('x2', (d) => scale(this.d_start(d)))
-                  .attr('y1', this.settings.svgHeight / 2)
-                  .attr('x1', (d,i) => this.get_x1_edge(scale,d,i))
-                  .attr('y2',this.settings.svgHeight / 2)
-                  .attr('stroke', d =>  this.color_edge_excerpt(d))
-                  .attr('stroke-width', this.settings.edge_height),
-              update => update
-                  .attr('x2', (d) => scale(this.d_start(d)))
-                  .attr('x1', (d,i) => this.get_x1_edge(scale,d,i))
+                  .attr('x1', (d) => scale(this.d_start(d)))
+                  .attr('x2', (d,i) => scale(this.d_start(this.datum.nodes[i])))
                   .attr('stroke',d =>  this.color_edge_excerpt(d)),
               exit => exit.remove()
           );
@@ -617,11 +597,8 @@ export default {
 
         svg_excerpt.selectAll('.line_between_right')
             .attr('x1', (d) => newScale(this.d_end(d)))
-            .attr('x2', (d,i) => newScale(this.d_end(d)) + (newScale(this.d_start(this.datum.nodes[i+1])) - newScale(this.d_end(d))) / 2)
+            .attr('x2', (d,i) => newScale(this.d_start(this.datum.nodes[i+1])))
 
-        svg_excerpt.selectAll('.line_between_left')
-            .attr('x2', (d) => newScale(this.d_start(d)))
-            .attr('x1', (d,i) => this.get_x1_edge(newScale,d,i))
 
       };
 
