@@ -121,6 +121,7 @@
           :options="statesColorGenes"
           icon="bi bi-paint-bucket"
           text="Edge"
+          :for_edge="true"
           @change="emitEvent('update-color_edge-excerpt', $event)"
       />
       

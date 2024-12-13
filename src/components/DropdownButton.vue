@@ -33,6 +33,10 @@ export default {
       type: Boolean,
       default: false,
     },
+    for_edge: {
+      type: Boolean,
+      default: false,
+    },
     options: Array,
     modelValue: [String, Number, Boolean, Object],
     spanStyle: {
@@ -42,8 +46,20 @@ export default {
   },
   computed: {
     option_w_null() {
+      // if for edge remove all options that finish with _edge
       if (this.no_default) {
+        if (this.for_edge) {
+          return this.options.filter((option) => {
+            option.endsWith('_edge')
+          } );
+        }
         return this.options;
+      }
+      if (this.for_edge) {
+        var f = this.options.filter((option) => {
+          return option.endsWith('_edge')
+        });
+        return [null, ...f];
       }
       return [null, ...this.options];
     },

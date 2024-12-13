@@ -533,7 +533,8 @@ export default {
           if (this.settings.exclusion_list_edges.includes(key)) {
             return;
           }
-          left_gene.data[key] = value
+          var handle_name = key + '_edge'
+          left_gene.data[handle_name] = value
         })
 
       });
