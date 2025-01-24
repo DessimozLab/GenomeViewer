@@ -9,9 +9,15 @@
           icon="bi bi-card-list"
           text='Selected genes'
           @click="showModal"
-          class="align-left"
+          class="me-auto"
           v-if="hasSelectedGenes"
       />
+
+      <!-- Search bar and button -->
+      <div class="input-group me-2 " style="width: 200px">
+        <input type="text" class="form-control" v-model="searchQuery" placeholder="Search..." style="height: 100%;">
+        <button class="btn btn-outline-dark" type="button" @click="handleSearch" style="height: 100%;">Search</button>
+      </div>
 
       <SelectedGenesModal
           v-if="isModalVisible"
@@ -241,6 +247,7 @@ export default {
   data() {
     return {
       isModalVisible: false,
+      searchQuery: '',
       settings : this.settings_base,
       localColorAccessorOverview: this.settings_base.colorAccessor_overview,
       localHeightAccessorOverview: this.settings_base.heightAccessor_overview,
@@ -341,7 +348,10 @@ export default {
       this.settings.data_metrics.numerical[accessor].min = min;
       this.settings.data_metrics.numerical[accessor].max = max;
       this.settings.data_metrics.numerical[accessor].steps = steps;
-    }
+    },
+    handleSearch() {
+      console.log(this.searchQuery); // Log the search query
+    },
 
   },
   emits: ['settings-event'],
@@ -359,7 +369,4 @@ export default {
   padding: 12px;
 }
 
-.align-left {
-  margin-right: auto !important;
-}
 </style>
