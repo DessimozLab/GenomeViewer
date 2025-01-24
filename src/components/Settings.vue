@@ -27,14 +27,7 @@
           :text="typeText"
           @click="emitEvent('toggle-type')"
       />
-      
-      <ButtonWithIcon
-          class="me-2"
-          data-bs-target="#toggleDiv"
-          data-bs-toggle="collapse"
-          icon="bi bi-highlights"
-          text="Color Legend"
-      />
+
 
       <ButtonWithIcon
           class="me-2"
@@ -74,62 +67,93 @@
           :no_indicator="true"
           @change="emitEvent('update-color-scheme', $event)"
       />
-      
-      <VerticalTextDivider text="General"/>
-      
-      <DropdownButton
-          id="button_color_overview"
-          v-model="localColorAccessorOverview"
-          :options="statesColorGenes"
+
+      <ButtonWithIcon
+          class="me-2"
+          data-bs-target="#toggleDivColor"
+          data-bs-toggle="collapse"
           icon="bi bi-paint-bucket"
-          text="Gene"
-          @change="emitEvent('update-color-overview', $event)"
-      />
-      
-      <DropdownButton
-          id="button_height_overview"
-          v-model="localHeightAccessorOverview"
-          :options="statesColorGenes"
-          icon="bi bi-arrows-vertical"
-          text="Gene"
-          @change="emitEvent('update-height-overview', $event)"
-      />
-      
-      <VerticalTextDivider text="Overview"/>
-      
-      <DropdownButton
-          id="button_color_excerpt"
-          v-model="localColorAccessorExcerpt"
-          :options="statesColorGenes"
-          icon="bi bi-paint-bucket"
-          text="Gene"
-          @change="emitEvent('update-color-excerpt', $event)"
-      />
-      
-      <DropdownButton
-          id="button_height_excerpt"
-          v-model="localHeightAccessorExcerpt"
-          :options="statesColorGenes"
-          icon="bi bi-arrows-vertical"
-          text="Gene"
-          @change="emitEvent('update-height-excerpt', $event)"
+          text="Set Color"
       />
 
-      <DropdownButton
-          id="button_color_edge_excerpt"
-          v-model="localColorEdgeAccessorExcerpt"
-          :options="statesColorGenes"
-          icon="bi bi-paint-bucket"
-          text="Edge"
-          :for_edge="true"
-          @change="emitEvent('update-color_edge-excerpt', $event)"
+      <ButtonWithIcon
+          class="me-2"
+          data-bs-target="#toggleDiv"
+          data-bs-toggle="collapse"
+          icon="bi bi-highlights"
+          text="Color Legend"
       />
-      
-      <VerticalTextDivider text="Excerpt"/>
-      
+
     </div>
-    <div id="toggleDiv" class="collapse text-center" style="margin:12px; padding: 24px;">
-      <div >
+
+    <div id="toggleDivColor" class="collapse" style="margin:12px; padding: 24px; background-color: rgba(200,200,200,0.1)">
+
+      <div class="d-flex justify-content-end ">
+
+        <DropdownButton
+            id="button_color_overview"
+            v-model="localColorAccessorOverview"
+            :options="statesColorGenes"
+            icon="bi bi-paint-bucket"
+            text="Gene"
+            @change="emitEvent('update-color-overview', $event)"
+        />
+
+        <DropdownButton
+            id="button_height_overview"
+            v-model="localHeightAccessorOverview"
+            :options="statesColorGenes"
+            icon="bi bi-arrows-vertical"
+            text="Gene"
+            @change="emitEvent('update-height-overview', $event)"
+        />
+
+        <VerticalTextDivider text="Overview"/>
+
+        <DropdownButton
+            id="button_color_excerpt"
+            v-model="localColorAccessorExcerpt"
+            :options="statesColorGenes"
+            icon="bi bi-paint-bucket"
+            text="Gene"
+            @change="emitEvent('update-color-excerpt', $event)"
+        />
+
+        <DropdownButton
+            id="button_height_excerpt"
+            v-model="localHeightAccessorExcerpt"
+            :options="statesColorGenes"
+            icon="bi bi-arrows-vertical"
+            text="Gene"
+            @change="emitEvent('update-height-excerpt', $event)"
+        />
+
+        <DropdownButton
+            id="button_color_edge_excerpt"
+            v-model="localColorEdgeAccessorExcerpt"
+            :options="statesColorGenes"
+            icon="bi bi-paint-bucket"
+            text="Edge"
+            :for_edge="true"
+            @change="emitEvent('update-color_edge-excerpt', $event)"
+        />
+
+        <VerticalTextDivider text="Excerpt"/>
+
+      </div>
+
+
+
+    </div>
+
+    <div id="toggleDiv" class="collapse text-center" style="margin:12px; padding: 24px; background-color: rgba(200,200,200,0.1)">
+
+      <div v-if="!hasColorLegend">
+        No scale selected
+      </div>
+      <div v-else>
+
+
 
         <ColorLegend
             ref="colorLegendOverview"
@@ -186,6 +210,8 @@
 
       </div>
     </div>
+
+
   </div>
 </template>
 
@@ -246,6 +272,9 @@ export default {
     },
   },
   computed: {
+    hasColorLegend() {
+      return this.localColorAccessorOverview || this.localColorAccessorExcerpt || this.localColorEdgeAccessorExcerpt || this.localHeightAccessorOverview || this.localHeightAccessorExcerpt;
+    },
 
     // GETTER
     hasSelectedGenes() {
