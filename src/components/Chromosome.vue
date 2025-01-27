@@ -690,6 +690,11 @@ export default {
     },
     color_gene_excerpt(d) {
 
+
+      if (this.settings.searchQueriesIds.includes(d.id)) {
+        return 'red';
+      }
+
       if (this.isInSelectedRegion(d)) {
         return this.settings.selected_gene_color
       }

@@ -57,6 +57,7 @@ export default {
         'callback_click_members': null,
 
         'searchQueries': [],
+        'searchQueriesIds': [],
 
         // COLOR
         color_scheme: 'Viridis',
@@ -100,6 +101,15 @@ export default {
   created() {
     this.configure_settings_user()
     this.prepare_data()
+
+    // Check if URL contains query parameter and perform search_query
+    const urlParams = new URLSearchParams(window.location.search);
+    const queryId = urlParams.get('query');
+    if (queryId) {
+      this.$nextTick(() => {
+        this.search_query(queryId);
+      });
+    }
   },
   methods: {
 
@@ -172,6 +182,7 @@ export default {
       const rect = document.getElementById(queryId);
       if (rect) {
         this.settings.searchQueries.push(rect);
+        this.settings.searchQueriesIds.push(queryId);
         rect.scrollIntoView({ behavior: 'smooth', block: 'center' });
         // add class to highlight the element
         rect.classList.add('highlight');
