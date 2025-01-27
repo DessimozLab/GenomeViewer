@@ -437,6 +437,7 @@ export default {
               enter => enter.append('rect') // For new data, append a new rectangle
                   .attr('x', d => scale(this.d_start(d)))
                   .attr('y', 0)
+                  .attr('id', d => d.id)
                   .attr('opacity', 0.8)
                   .attr('width', d => scale(this.d_end(d)) - scale(this.d_start(d)))
                   .attr('height', d => {

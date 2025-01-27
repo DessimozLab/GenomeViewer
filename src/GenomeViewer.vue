@@ -56,6 +56,8 @@ export default {
         'callback_click_detail': null,
         'callback_click_members': null,
 
+        'searchQueries': [],
+
         // COLOR
         color_scheme: 'Viridis',
         color_scheme_list: Object.keys(d3_chrome)
@@ -91,7 +93,8 @@ export default {
       index_color_genes_overview: 0,
       index_sorting: 0,
       states_sorting: ['size', 'number_genes', 'name'],
-      render_data: this.jsonData
+      render_data: this.jsonData,
+
     }
   },
   created() {
@@ -159,11 +162,29 @@ export default {
         case 'update-color-scheme':
           this.toggleColorScheme(payload);
           break;
-
-
-
+        case 'search':
+          this.search_query(payload);
+          break;
 
       }
+    },
+    scrollToRect(queryId) {
+      const rect = document.getElementById(queryId);
+      if (rect) {
+        this.settings.searchQueries.push(rect);
+        rect.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // add class to highlight the element
+        rect.classList.add('highlight');
+        rect.setAttribute('stroke', 'red');
+        rect.setAttribute('stroke-width', '2px');
+        console.log(this.settings.searchQueries, rect)
+      } else {
+        console.log(`Element with ID ${queryId} not found.`);
+      }
+    },
+    search_query(queryId) {
+      this.scrollToRect(queryId);
+
     },
     toggleColorScheme(selectedOption) {
       this.settings.color_scheme = selectedOption;
@@ -757,4 +778,5 @@ export default {
 
 }
 </script>
+
 

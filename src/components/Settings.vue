@@ -14,9 +14,10 @@
       />
 
       <!-- Search bar and button -->
-      <div class="input-group me-2 " style="width: 200px">
+      <div class="input-group me-2 " style="width: 300px">
         <input type="text" class="form-control" v-model="searchQuery" placeholder="Search..." style="height: 100%;">
-        <button class="btn btn-outline-dark" type="button" @click="handleSearch" style="height: 100%;">Search</button>
+        <button class="btn btn-outline-dark" type="button" v-if="settings.searchQueries.length > 0" @click="clearHighlights">Clear</button>
+        <button class="btn btn-outline-dark" type="button" @click="handleSearch" style="height: 100%;">Highlight</button>
       </div>
 
       <SelectedGenesModal
@@ -332,6 +333,14 @@ export default {
     },
   },
   methods: {
+
+    clearHighlights() {
+      this.settings.searchQueries.forEach(rect => {
+        rect.removeAttribute('stroke');
+        rect.removeAttribute('stroke-width');
+      });
+      this.settings.searchQueries = [];
+    },
     // EVENTS
     emitEvent(eventType, payload = null) {
       this.$emit('settings-event', {eventType, payload});
@@ -350,7 +359,8 @@ export default {
       this.settings.data_metrics.numerical[accessor].steps = steps;
     },
     handleSearch() {
-      console.log(this.searchQuery); // Log the search query
+      this.emitEvent('search', this.searchQuery);
+
     },
 
   },
