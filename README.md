@@ -39,7 +39,7 @@ npm install genome-viewer
    npm run serve
    ```
 
-2. Open your browser and navigate to `http://localhost:8080`.
+2. Open your browser and navigate to `http://localhost:8080/demo_human` (or any page you set up in [vue.config.js](vue.config.js) ).
 
 ## Configuration
 
