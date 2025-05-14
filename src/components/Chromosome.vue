@@ -880,13 +880,19 @@ export default {
         switch (go.aspect) {
 
           case "cellular_component":
-            ann_proc.cell.add(go);
+            if (![...ann_proc.cell].some(item => item.GO_term === go.GO_term)) {
+              ann_proc.cell.add(go);
+            }
             break;
           case 'biological_process':
-            ann_proc.bio.add(go);
+            if (![...ann_proc.bio].some(item => item.GO_term === go.GO_term)) {
+              ann_proc.bio.add(go);
+            }
             break;
           case 'molecular_function':
-            ann_proc.mol.add(go);
+            if (![...ann_proc.mol].some(item => item.GO_term === go.GO_term)) {
+              ann_proc.mol.add(go);
+            }
             break;
           default:
             console.log(`${go.aspect} not recognise as annotation category.`);
