@@ -190,6 +190,7 @@ export default {
         rect.setAttribute('stroke-width', '2px');
         console.log(this.settings.searchQueries, rect)
       } else {
+        alert(`Element with ID ${queryId} not found.`);
         console.log(`Element with ID ${queryId} not found.`);
       }
     },
