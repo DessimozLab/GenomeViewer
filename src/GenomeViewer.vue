@@ -365,7 +365,7 @@ export default {
       const processFunction = this.settings.type_chromosome === 'extant' ? this.process_extant : this.process_ancestral;
 
       this.render_data = Object.values(this.jsonData)
-          .filter(datum => datum.nodes.length > this.settings.min_genes)
+          .filter(datum => datum.nodes.length >= this.settings.min_genes)
           .sort((a, b) => a.nodes.length + b.nodes.length)
           .map((element, index) => processFunction(element, index));
 

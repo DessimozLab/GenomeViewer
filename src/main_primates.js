@@ -6,6 +6,7 @@ var settings = {
     'sorting_chromosome': 'size',
     'colorAccessor_excerpt' : 'completeness_score',
     'heightAccessor_excerpt' : 'nr_members',
+    'min_genes': 15,
     'force_extent_numerical': {'nr_members': {'min': 0, 'max': 48}},
 
 

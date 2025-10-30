@@ -166,30 +166,30 @@
             ref="colorLegendOverview"
             id="color_legend_overview"
             :settings = "this.settings"
-            :min_base="this.settings.data_metrics.numerical[localColorAccessorOverview].min"
-            :max_base="this.settings.data_metrics.numerical[localColorAccessorOverview].max"
+            :min_base="this.settings.data_metrics.numerical[localColorAccessorOverview]?.min"
+            :max_base="this.settings.data_metrics.numerical[localColorAccessorOverview]?.max"
             :text='localColorAccessorOverview'
-            v-if="this.localColorAccessorOverview"
+            v-if="this.localColorAccessorOverview && this.settings.data_metrics.numerical[localColorAccessorOverview]"
             @update-extent="updateExtent"
         />
 
         <ColorLegend
             id="color_legend_local"
             :settings = "this.settings"
-            :min_base="this.settings.data_metrics.numerical[localColorAccessorExcerpt].min"
-            :max_base="this.settings.data_metrics.numerical[localColorAccessorExcerpt].max"
+            :min_base="this.settings.data_metrics.numerical[localColorAccessorExcerpt]?.min"
+            :max_base="this.settings.data_metrics.numerical[localColorAccessorExcerpt]?.max"
             :text='localColorAccessorExcerpt'
-            v-if="this.localColorAccessorExcerpt && localColorAccessorExcerpt !== localColorAccessorOverview"
+            v-if="this.localColorAccessorExcerpt && this.settings.data_metrics.numerical[localColorAccessorExcerpt] && localColorAccessorExcerpt !== localColorAccessorOverview"
             @update-extent="updateExtent"
         />
 
         <ColorLegend
             id="color_legend_edge"
             :settings = "this.settings"
-            :min_base="this.settings.data_metrics.numerical[localColorEdgeAccessorExcerpt].min"
-            :max_base="this.settings.data_metrics.numerical[localColorEdgeAccessorExcerpt].max"
+            :min_base="this.settings.data_metrics.numerical[localColorEdgeAccessorExcerpt]?.min"
+            :max_base="this.settings.data_metrics.numerical[localColorEdgeAccessorExcerpt]?.max"
             :text='localColorEdgeAccessorExcerpt'
-            v-if="this.localColorEdgeAccessorExcerpt && localColorEdgeAccessorExcerpt !== localColorAccessorOverview && localColorEdgeAccessorExcerpt !== localColorAccessorExcerpt"
+            v-if="this.localColorEdgeAccessorExcerpt && this.settings.data_metrics.numerical[localColorEdgeAccessorExcerpt] && localColorEdgeAccessorExcerpt !== localColorAccessorOverview && localColorEdgeAccessorExcerpt !== localColorAccessorExcerpt"
             @update-extent="updateExtent"
         />
 
@@ -197,20 +197,20 @@
             ref="heightLegendOverview"
             id="height_legend_overview"
             :settings = "this.settings"
-            :min_base="this.settings.data_metrics.numerical[localHeightAccessorOverview].min"
-            :max_base="this.settings.data_metrics.numerical[localHeightAccessorOverview].max"
+            :min_base="this.settings.data_metrics.numerical[localHeightAccessorOverview]?.min"
+            :max_base="this.settings.data_metrics.numerical[localHeightAccessorOverview]?.max"
             :text='localHeightAccessorOverview'
-            v-if="this.localHeightAccessorOverview && localHeightAccessorOverview !== localColorEdgeAccessorExcerpt && localHeightAccessorOverview !== localColorAccessorOverview && localHeightAccessorOverview !== localColorAccessorExcerpt"
+            v-if="this.localHeightAccessorOverview && this.settings.data_metrics.numerical[localHeightAccessorOverview] && localHeightAccessorOverview !== localColorEdgeAccessorExcerpt && localHeightAccessorOverview !== localColorAccessorOverview && localHeightAccessorOverview !== localColorAccessorExcerpt"
             @update-extent="updateExtent"
         />
 
         <ColorLegendVertical
             id="height_legend_excerpt"
             :settings = "this.settings"
-            :min_base="this.settings.data_metrics.numerical[localHeightAccessorExcerpt].min"
-            :max_base="this.settings.data_metrics.numerical[localHeightAccessorExcerpt].max"
+            :min_base="this.settings.data_metrics.numerical[localHeightAccessorExcerpt]?.min"
+            :max_base="this.settings.data_metrics.numerical[localHeightAccessorExcerpt]?.max"
             :text='localHeightAccessorExcerpt'
-            v-if="this.localHeightAccessorExcerpt && localHeightAccessorOverview !== localHeightAccessorExcerpt "
+            v-if="this.localHeightAccessorExcerpt && this.settings.data_metrics.numerical[localHeightAccessorExcerpt] && localHeightAccessorOverview !== localHeightAccessorExcerpt "
             @update-extent="updateExtent"
         />
 

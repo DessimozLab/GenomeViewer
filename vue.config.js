@@ -19,7 +19,6 @@ module.exports = {
       template: 'public/index.html',
       filename: 'demo_primates.html',
       title: 'Demo Primates Page',
-
     }
   },
 }
