@@ -160,7 +160,12 @@
       </div>
       <div v-else>
 
-
+        <div id="orientation_legend" class="d-inline-block mx-3 align-top" style="font-family: monospace; text-align: left" v-if="hasOrientationLegend">
+          <div><b>Edge orientation</b></div>
+          <div>&lt;&gt; divergent</div>
+          <div>&gt;&lt; convergent</div>
+          <div>&gt;&gt; unidirectional</div>
+        </div>
 
         <ColorLegend
             ref="colorLegendOverview"
@@ -281,7 +286,10 @@ export default {
   },
   computed: {
     hasColorLegend() {
-      return this.localColorAccessorOverview || this.localColorAccessorExcerpt || this.localColorEdgeAccessorExcerpt || this.localHeightAccessorOverview || this.localHeightAccessorExcerpt;
+      return this.localColorAccessorOverview || this.localColorAccessorExcerpt || this.localColorEdgeAccessorExcerpt || this.localHeightAccessorOverview || this.localHeightAccessorExcerpt || this.hasOrientationLegend;
+    },
+    hasOrientationLegend() {
+      return !!(this.settings.data_metrics.categorical && this.settings.data_metrics.categorical['orientation_edge']);
     },
 
     // GETTER
