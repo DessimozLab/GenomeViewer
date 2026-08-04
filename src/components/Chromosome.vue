@@ -229,9 +229,6 @@ export default {
     d_end() {
       return this.settings.type_position === 'loci' ? d => d.end : d => d.index + 0.5
     },
-    show_orientation_symbols() {
-      return !!(this.settings.data_metrics.categorical && this.settings.data_metrics.categorical['orientation_edge']);
-    },
   },
   methods: {
     update_renders() {
@@ -558,37 +555,16 @@ export default {
           .join(
               enter => enter.append('line')
                   .attr('class', 'line_between_right')
-                  .attr('x1', (d) => scale(this.d_end(d)))
+                  .attr('x1', (d) => scale(this.d_start(d)))
                   .attr('y1', this.settings.svgHeight / 2)
-                  .attr('x2', (d,i) => scale(this.d_start(this.datum.nodes[i + 1])))
+                  .attr('x2', (d,i) => scale(this.d_start(this.datum.nodes[i])))
                   .attr('y2',this.settings.svgHeight / 2)
                   .attr('stroke', d =>  this.color_edge_excerpt(d))
                   .attr('stroke-width', this.settings.edge_height),
               update => update
-                  .attr('x1', (d) => scale(this.d_end(d)))
-                  .attr('x2', (d,i) => scale(this.d_start(this.datum.nodes[i + 1])))
+                  .attr('x1', (d) => scale(this.d_start(d)))
+                  .attr('x2', (d,i) => scale(this.d_start(this.datum.nodes[i])))
                   .attr('stroke',d =>  this.color_edge_excerpt(d)),
-              exit => exit.remove()
-          );
-
-      svg_excerpt.selectAll('.edge_orientation_symbol')
-          .data(this.show_orientation_symbols ? this.datum.nodes.slice(0, this.datum.nodes.length - 1) : [])
-          .join(
-              enter => enter.append('text')
-                  .attr('class', 'edge_orientation_symbol')
-                  .attr('x', (d, i) => this.orientation_symbol_x(scale, d, i))
-                  .attr('y', this.settings.svgHeight / 2)
-                  .attr('dy', '0.32em')
-                  .attr('text-anchor', 'middle')
-                  .attr('font-size', '10px')
-                  .attr('font-family', 'monospace')
-                  .attr('fill', 'black')
-                  .attr('opacity', (d, i) => this.orientation_symbol_opacity(scale, d, i))
-                  .text(d => this.orientation_symbol(d)),
-              update => update
-                  .attr('x', (d, i) => this.orientation_symbol_x(scale, d, i))
-                  .attr('opacity', (d, i) => this.orientation_symbol_opacity(scale, d, i))
-                  .text(d => this.orientation_symbol(d)),
               exit => exit.remove()
           );
 
@@ -631,9 +607,6 @@ export default {
             .attr('x1', (d) => newScale(this.d_end(d)))
             .attr('x2', (d,i) => newScale(this.d_start(this.datum.nodes[i+1])))
 
-        svg_excerpt.selectAll('.edge_orientation_symbol')
-            .attr('x', (d, i) => this.orientation_symbol_x(newScale, d, i))
-            .attr('opacity', (d, i) => this.orientation_symbol_opacity(newScale, d, i));
 
       };
 
@@ -745,18 +718,6 @@ export default {
 
       return this.color_scale_excerpt_edge(d.data[this.settings.colorAccessor_excerpt_edge])
 
-    },
-    orientation_symbol(d) {
-      const symbols = {divergent: '<>', convergent: '><', unidirectional: '>>'};
-      return symbols[d.data.orientation_edge] || '';
-    },
-    orientation_symbol_x(scale, d, i) {
-      return (scale(this.d_end(d)) + scale(this.d_start(this.datum.nodes[i + 1]))) / 2
-    },
-    orientation_symbol_opacity(scale, d, i) {
-      // hide the symbol when there isn't enough room between the two genes to draw it legibly
-      const edge_width = scale(this.d_start(this.datum.nodes[i + 1])) - scale(this.d_end(d));
-      return edge_width >= 14 ? 1 : 0;
     },
     set_height_gene_excerpt_scale() {
 
