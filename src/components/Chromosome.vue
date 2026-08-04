@@ -229,6 +229,9 @@ export default {
     d_end() {
       return this.settings.type_position === 'loci' ? d => d.end : d => d.index + 0.5
     },
+    show_direction_triangles() {
+      return !!(this.settings.data_metrics.categorical && this.settings.data_metrics.categorical['strand']);
+    },
   },
   methods: {
     update_renders() {
@@ -518,15 +521,9 @@ export default {
                   .attr('height', d => {
                     return this.settings.heightAccessor_excerpt == null ? scale_height : scale_height(d.data[this.settings.heightAccessor_excerpt])
                   })
+                  .attr('opacity', 0.8)
                   .on('click', (event, d) => this.showMenu(event, d))
-                  .attr('transform', d => {
-                    if (this.settings.heightAccessor_excerpt == null) {
-                      return 'translate(0, 0)'
-                    } else {
-                      var y = this.settings.svgHeight - scale_height(d.data[this.settings.heightAccessor_excerpt])
-                      return `translate(0, ${y})`
-                    }
-                  })
+                  .attr('transform', d => this.gene_vertical_transform(scale_height, d))
                   .attr('fill', d => this.color_gene_excerpt(d)),
               update => update // For updated data, update the existing rectangles
                   .attr('x', d => scale(this.d_start(d)))
@@ -537,33 +534,25 @@ export default {
                   })
                   .attr('opacity', 0.8)
                   .on('click', (event, d) => this.showMenu(event, d))
-                  .attr('transform', d => {
-                    if (this.settings.heightAccessor_excerpt == null) {
-                      return 'translate(0, 0)'
-                    } else {
-                      var y = this.settings.svgHeight - scale_height(d.data[this.settings.heightAccessor_excerpt])
-                      return `translate(0, ${y/2})`
-                    }
-                  })
+                  .attr('transform', d => this.gene_vertical_transform(scale_height, d))
                   .attr('fill', d => this.color_gene_excerpt(d)),
               exit => exit.remove() // For outgoing data, remove the rectangles
           );
-
 
       svg_excerpt.selectAll('.line_between_right')
           .data(this.datum.nodes.slice(0, this.datum.nodes.length - 1))
           .join(
               enter => enter.append('line')
                   .attr('class', 'line_between_right')
-                  .attr('x1', (d) => scale(this.d_start(d)))
+                  .attr('x1', (d) => scale(this.d_end(d)))
                   .attr('y1', this.settings.svgHeight / 2)
-                  .attr('x2', (d,i) => scale(this.d_start(this.datum.nodes[i])))
+                  .attr('x2', (d,i) => scale(this.d_start(this.datum.nodes[i + 1])))
                   .attr('y2',this.settings.svgHeight / 2)
                   .attr('stroke', d =>  this.color_edge_excerpt(d))
                   .attr('stroke-width', this.settings.edge_height),
               update => update
-                  .attr('x1', (d) => scale(this.d_start(d)))
-                  .attr('x2', (d,i) => scale(this.d_start(this.datum.nodes[i])))
+                  .attr('x1', (d) => scale(this.d_end(d)))
+                  .attr('x2', (d,i) => scale(this.d_start(this.datum.nodes[i + 1])))
                   .attr('stroke',d =>  this.color_edge_excerpt(d)),
               exit => exit.remove()
           );
@@ -579,6 +568,24 @@ export default {
                   .attr('y2', 20)
                   .attr('stroke', 'grey')
                   .attr('stroke-width', 2),
+          );
+
+      // painted last so the direction arrows stay in front of the gene rects and the edge lines
+      svg_excerpt.selectAll('.gene_direction_triangle')
+          .data(this.show_direction_triangles ? this.datum.nodes.filter(d => d.data.strand === '+' || d.data.strand === '-') : [])
+          .join(
+              enter => enter.append('path')
+                  .attr('class', 'gene_direction_triangle')
+                  .attr('d', d => this.direction_triangle_path(scale, scale_height, d))
+                  .attr('transform', d => this.direction_triangle_transform(scale, scale_height, d))
+                  .attr('opacity', d => this.direction_triangle_opacity(scale, d))
+                  .attr('fill', d => this.color_gene_excerpt(d)),
+              update => update
+                  .attr('d', d => this.direction_triangle_path(scale, scale_height, d))
+                  .attr('transform', d => this.direction_triangle_transform(scale, scale_height, d))
+                  .attr('opacity', d => this.direction_triangle_opacity(scale, d))
+                  .attr('fill', d => this.color_gene_excerpt(d)),
+              exit => exit.remove()
           );
 
 
@@ -607,6 +614,10 @@ export default {
             .attr('x1', (d) => newScale(this.d_end(d)))
             .attr('x2', (d,i) => newScale(this.d_start(this.datum.nodes[i+1])))
 
+        svg_excerpt.selectAll('.gene_direction_triangle')
+            .attr('d', d => this.direction_triangle_path(newScale, scale_height, d))
+            .attr('transform', d => this.direction_triangle_transform(newScale, scale_height, d))
+            .attr('opacity', d => this.direction_triangle_opacity(newScale, d));
 
       };
 
@@ -719,6 +730,50 @@ export default {
       return this.color_scale_excerpt_edge(d.data[this.settings.colorAccessor_excerpt_edge])
 
     },
+    gene_height_excerpt(scale_height, d) {
+      return this.settings.heightAccessor_excerpt == null ? scale_height : scale_height(d.data[this.settings.heightAccessor_excerpt])
+    },
+    gene_vertical_transform(scale_height, d) {
+      // centers the gene (and its direction triangle, via the same formula) on the edge line at svgHeight/2,
+      // rather than anchoring it to the bottom of the excerpt
+      if (this.settings.heightAccessor_excerpt == null) {
+        return 'translate(0, 0)'
+      }
+      const height = this.gene_height_excerpt(scale_height, d)
+      const y = (this.settings.svgHeight - height) / 2
+      return `translate(0, ${y})`
+    },
+    gene_width_excerpt(scale, d) {
+      return scale(this.d_end(d)) - scale(this.d_start(d))
+    },
+    direction_triangle_glyph_width(scale, d) {
+      // scales up with the gene's on-screen width so the arrow stays readable once zoomed in,
+      // but never shrinks below the baseline or grows past the cap for very wide genes
+      const width = this.gene_width_excerpt(scale, d) * this.direction_triangle_width_ratio
+      return Math.min(this.max_direction_triangle_width, Math.max(this.min_direction_triangle_width, width))
+    },
+    direction_triangle_path(scale, scale_height, d) {
+      // a triangle pointing right, flush against local x=0; translate/mirror in the transform
+      // positions and orients it per-gene without ever having to recompute this path on zoom
+      const height = this.gene_height_excerpt(scale_height, d)
+      const width = this.direction_triangle_glyph_width(scale, d)
+      return `M0,0 L0,${height} L${width},${height / 2} Z`
+    },
+    direction_triangle_transform(scale, scale_height, d) {
+      // same vertical anchor as the gene rect (gene_vertical_transform) so the triangle and its
+      // gene box always stay aligned, only expressed as an absolute y instead of a translate delta
+      const height = this.gene_height_excerpt(scale_height, d)
+      const ty = this.settings.heightAccessor_excerpt == null ? 0 : (this.settings.svgHeight - height) / 2
+      if (d.data.strand === '-') {
+        return `translate(${scale(this.d_start(d))}, ${ty}) scale(-1,1)`
+      }
+      return `translate(${scale(this.d_end(d))}, ${ty})`
+    },
+    direction_triangle_opacity(scale, d) {
+      // hide the triangle once the gene itself is too narrow on screen to draw it legibly;
+      // 0.8 matches the gene rect's own opacity so the arrow doesn't look more solid than its gene
+      return this.gene_width_excerpt(scale, d) >= this.min_gene_width_for_direction ? 0.8 : 0
+    },
     set_height_gene_excerpt_scale() {
 
       if (this.settings.heightAccessor_excerpt === null) {
@@ -782,21 +837,47 @@ export default {
         }
       }
 
-      // Display additional data metrics
-      if (this.settings.data_metrics.categorical) {
-        for (const key of Object.keys(this.settings.data_metrics.categorical)) {
+      // Display additional data metrics, grouped into "Gene" (incl. start/end position)
+      // and "Edge" sections, each sorted alphabetically for easier reading
+      const addSectionHeader = (title) => {
+        this.menuContent.push({type: 'text', content: `<hr style="margin-top: 0.1em; margin-bottom: 0.2em"> <b>${title}</b> <hr style="margin-top: 0.1em; margin-bottom: 0.2em">`, click:null, style: null})
+      }
 
-          this.menuContent.push( {type: 'text', content: `<span ><b>${key}:</b> ${d.data[key]}</span>` , click:null, style: null})
+      const geneKeys = new Set()
+      const edgeKeys = new Set()
 
-
+      const collectKeys = (metrics) => {
+        if (!metrics) return
+        for (const key of Object.keys(metrics)) {
+          if (key.endsWith('_edge')) {
+            edgeKeys.add(key)
+          } else {
+            geneKeys.add(key)
+          }
         }
       }
 
-      if (this.settings.data_metrics.numerical) {
-        for (const key of Object.keys(this.settings.data_metrics.numerical)) {
-          this.menuContent.push( {type: 'text', content:`<span><b>${key}:</b> ${d.data[key]}</span>` , click:null, style: null})
+      collectKeys(this.settings.data_metrics.categorical)
+      collectKeys(this.settings.data_metrics.numerical)
 
-        }
+      addSectionHeader('Gene')
+
+      if (this.datum.type === 'extant') {
+        this.menuContent.push({type: 'text', content: `<span><b>Start:</b> ${this.pretty_locus(d.start)}</span>`, click:null, style: null})
+        this.menuContent.push({type: 'text', content: `<span><b>End:</b> ${this.pretty_locus(d.end)}</span>`, click:null, style: null})
+      }
+
+      Array.from(geneKeys).sort((a, b) => a.localeCompare(b)).forEach(key => {
+        this.menuContent.push({type: 'text', content: `<span><b>${key}:</b> ${d.data[key]}</span>`, click:null, style: null})
+      })
+
+      if (edgeKeys.size > 0) {
+        addSectionHeader('Edge')
+
+        Array.from(edgeKeys).sort((a, b) => a.localeCompare(b)).forEach(key => {
+          const label = key.slice(0, -'_edge'.length)
+          this.menuContent.push({type: 'text', content: `<span><b>${label}:</b> ${d.data[key]}</span>`, click:null, style: null})
+        })
       }
 
       // add Action button
@@ -987,7 +1068,11 @@ export default {
       menuVisible: false,
       menuPosition: {x: 0, y: 0},
       menuContent: [],
-      color_scheme: this.settings.color_scheme_list[this.settings.color_scheme]
+      color_scheme: this.settings.color_scheme_list[this.settings.color_scheme],
+      min_direction_triangle_width: 5,
+      max_direction_triangle_width: 10,
+      direction_triangle_width_ratio: 0.2,
+      min_gene_width_for_direction: 18,
     }
   },
   emits: ['chromosome-event'],

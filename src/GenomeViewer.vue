@@ -367,12 +367,71 @@ export default {
       this.render_data = Object.values(this.jsonData)
           .filter(datum => datum.nodes.length >= this.settings.min_genes)
           .sort((a, b) => a.nodes.length + b.nodes.length)
-          .map((element, index) => processFunction(element, index));
+          .map((element, index) => processFunction(element, index))
+          .map(datum => this.infer_strand(datum));
 
       //this.add_fake_data()
 
       this.analyzeData()
 
+    },
+    infer_strand(datum) {
+
+      // Extant genes already carry a real 'strand' field (see process_extant -> get_data_metrics),
+      // so there is nothing to infer for them - only ancestral HOGs need a derived direction.
+      const nodes = datum.nodes
+      if (nodes.length === 0 || nodes[0].data.strand !== undefined) {
+        return datum
+      }
+
+      const DEFAULT_STRAND = '+' // used only when a whole contig has no divergent/convergent edge to anchor on
+
+      // Walk the contig left to right. A 'divergent'/'convergent' edge fixes the strand of BOTH
+      // genes it connects (per the definition below), so it re-anchors `current` outright; a
+      // 'unidirectional' edge just means "same strand as the gene to its left", so `current`
+      // propagates unchanged. Any leading run of genes seen before the first anchoring edge is
+      // filled in retroactively once that anchor is found.
+      let current = null
+
+      for (let i = 0; i < nodes.length; i++) {
+
+        if (current !== null) {
+          nodes[i].data.strand = current
+        }
+
+        if (i === nodes.length - 1) {
+          break
+        }
+
+        const orientation = nodes[i].data.orientation_edge
+
+        if (orientation !== 'divergent' && orientation !== 'convergent') {
+          continue // unidirectional (or missing orientation data): keep propagating `current`
+        }
+
+        // divergent: left gene is '-', right gene is '+'. convergent: the opposite.
+        const leftStrand = orientation === 'divergent' ? '-' : '+'
+        const rightStrand = orientation === 'divergent' ? '+' : '-'
+
+        if (current === null) {
+          for (let j = 0; j <= i; j++) {
+            nodes[j].data.strand = leftStrand
+          }
+        } else if (current !== leftStrand) {
+          console.warn(`[GenomeViewer] inconsistent edge orientation in "${datum.name}" around gene "${nodes[i].id}": ` +
+              `propagated strand '${current}' conflicts with the '${orientation}' edge here; keeping '${current}'.`)
+        }
+
+        current = rightStrand
+      }
+
+      if (current === null) {
+        // no divergent/convergent edge anywhere in this contig: direction is unrecoverable, pick a
+        // deterministic default so the whole (unidirectional) contig at least renders consistently
+        nodes.forEach(n => { n.data.strand = DEFAULT_STRAND })
+      }
+
+      return datum
     },
     process_extant(datum) {
 
@@ -425,11 +484,13 @@ export default {
         });
       });
 
-      // Step 2: Add values to data with the determined type
+      // Step 2: Add values to data with the determined type, keys alphabetically sorted
       nodes.forEach(gene => {
         gene.data = {};
 
-        Object.entries(gene).forEach(([key, value]) => {
+        Object.keys(gene).sort((a, b) => a.localeCompare(b)).forEach(key => {
+          const value = gene[key];
+
           if (this.settings.exclusion_list.includes(key)) {
             return;
           }
@@ -560,7 +621,10 @@ export default {
         var left_gene = s.index < t.index ? s : t;
         left_gene.edges = element
 
-        Object.entries(element).forEach( ([key, value]) => {
+        // keys alphabetically sorted, appended after the node's own keys so
+        // gene.data stays grouped: node fields first, edge fields last
+        Object.keys(element).sort((a, b) => a.localeCompare(b)).forEach((key) => {
+          const value = element[key]
 
           // if key in exclusion list, skip
           if (this.settings.exclusion_list_edges.includes(key)) {
