@@ -484,11 +484,13 @@ export default {
         });
       });
 
-      // Step 2: Add values to data with the determined type
+      // Step 2: Add values to data with the determined type, keys alphabetically sorted
       nodes.forEach(gene => {
         gene.data = {};
 
-        Object.entries(gene).forEach(([key, value]) => {
+        Object.keys(gene).sort((a, b) => a.localeCompare(b)).forEach(key => {
+          const value = gene[key];
+
           if (this.settings.exclusion_list.includes(key)) {
             return;
           }
@@ -619,7 +621,10 @@ export default {
         var left_gene = s.index < t.index ? s : t;
         left_gene.edges = element
 
-        Object.entries(element).forEach( ([key, value]) => {
+        // keys alphabetically sorted, appended after the node's own keys so
+        // gene.data stays grouped: node fields first, edge fields last
+        Object.keys(element).sort((a, b) => a.localeCompare(b)).forEach((key) => {
+          const value = element[key]
 
           // if key in exclusion list, skip
           if (this.settings.exclusion_list_edges.includes(key)) {

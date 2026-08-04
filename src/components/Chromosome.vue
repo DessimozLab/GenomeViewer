@@ -837,21 +837,47 @@ export default {
         }
       }
 
-      // Display additional data metrics
-      if (this.settings.data_metrics.categorical) {
-        for (const key of Object.keys(this.settings.data_metrics.categorical)) {
+      // Display additional data metrics, grouped into "Gene" (incl. start/end position)
+      // and "Edge" sections, each sorted alphabetically for easier reading
+      const addSectionHeader = (title) => {
+        this.menuContent.push({type: 'text', content: `<hr style="margin-top: 0.1em; margin-bottom: 0.2em"> <b>${title}</b> <hr style="margin-top: 0.1em; margin-bottom: 0.2em">`, click:null, style: null})
+      }
 
-          this.menuContent.push( {type: 'text', content: `<span ><b>${key}:</b> ${d.data[key]}</span>` , click:null, style: null})
+      const geneKeys = new Set()
+      const edgeKeys = new Set()
 
-
+      const collectKeys = (metrics) => {
+        if (!metrics) return
+        for (const key of Object.keys(metrics)) {
+          if (key.endsWith('_edge')) {
+            edgeKeys.add(key)
+          } else {
+            geneKeys.add(key)
+          }
         }
       }
 
-      if (this.settings.data_metrics.numerical) {
-        for (const key of Object.keys(this.settings.data_metrics.numerical)) {
-          this.menuContent.push( {type: 'text', content:`<span><b>${key}:</b> ${d.data[key]}</span>` , click:null, style: null})
+      collectKeys(this.settings.data_metrics.categorical)
+      collectKeys(this.settings.data_metrics.numerical)
 
-        }
+      addSectionHeader('Gene')
+
+      if (this.datum.type === 'extant') {
+        this.menuContent.push({type: 'text', content: `<span><b>Start:</b> ${this.pretty_locus(d.start)}</span>`, click:null, style: null})
+        this.menuContent.push({type: 'text', content: `<span><b>End:</b> ${this.pretty_locus(d.end)}</span>`, click:null, style: null})
+      }
+
+      Array.from(geneKeys).sort((a, b) => a.localeCompare(b)).forEach(key => {
+        this.menuContent.push({type: 'text', content: `<span><b>${key}:</b> ${d.data[key]}</span>`, click:null, style: null})
+      })
+
+      if (edgeKeys.size > 0) {
+        addSectionHeader('Edge')
+
+        Array.from(edgeKeys).sort((a, b) => a.localeCompare(b)).forEach(key => {
+          const label = key.slice(0, -'_edge'.length)
+          this.menuContent.push({type: 'text', content: `<span><b>${label}:</b> ${d.data[key]}</span>`, click:null, style: null})
+        })
       }
 
       // add Action button
