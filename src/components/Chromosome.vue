@@ -129,13 +129,13 @@ export default {
       },
       deep: true
     },
-    'settings.colorAccessor_overview': {
+    'settings.colorAccessor': {
       handler: function () {
         this.update_renders()
       },
       deep: true,
     },
-    'settings.heightAccessor_overview': {
+    'settings.heightAccessor': {
       handler: function () {
         this.update_renders()
       },
@@ -148,47 +148,23 @@ export default {
       },
       deep: true
     },
-    'settings.colorAccessor_excerpt': {
+    'settings.colorAccessor_edge': {
       handler: function () {
         this.update_renders()
       },
       deep: true,
-    },
-    'settings.colorAccessor_excerpt_edge': {
-      handler: function () {
-        this.update_renders()
-      },
-      deep: true,
-    },
-    'settings.heightAccessor_excerpt': {
-      handler: function () {
-        this.update_renders()
-      },
-      deep: true
     },
   },
   computed: {
     // SCALE
-    color_scale_excerpt() {
-      const extent = this.settings.data_metrics.numerical[this.settings.colorAccessor_excerpt]
-      return d3.scaleSequential()
-          .domain([extent.min, extent.max])
-          .interpolator(this.color_scheme);
-    },
-    color_scale_excerpt_edge() {
-      const extent = this.settings.data_metrics.numerical[this.settings.colorAccessor_excerpt_edge]
-      return d3.scaleSequential()
-          .domain([extent.min, extent.max])
-          .interpolator(this.color_scheme);
-    },
-    color_scale_overview() {
-      const extent = this.settings.data_metrics.numerical[this.settings.colorAccessor_overview]
-      return d3.scaleSequential()
-          .domain([extent.min, extent.max])
-          .interpolator(this.color_scheme);
-    },
     color_scale() {
-      const extent = this.settings.data_metrics.numerical[this.settings.colorAccessor_overview]
+      const extent = this.settings.data_metrics.numerical[this.settings.colorAccessor]
+      return d3.scaleSequential()
+          .domain([extent.min, extent.max])
+          .interpolator(this.color_scheme);
+    },
+    color_scale_edge() {
+      const extent = this.settings.data_metrics.numerical[this.settings.colorAccessor_edge]
       return d3.scaleSequential()
           .domain([extent.min, extent.max])
           .interpolator(this.color_scheme);
@@ -320,6 +296,33 @@ export default {
     },
 
     // RENDER
+    applyDefaultExcerptZoom() {
+      // only kicks in on first mount, while currentZoom is still untouched by the user
+      if (this.datum.currentZoom.k !== 1 || this.datum.currentZoom.x !== 0) {
+        return
+      }
+
+      const windowSize = this.settings.default_excerpt_window_genes
+      if (!windowSize || this.datum.nodes.length <= windowSize) {
+        return
+      }
+
+      const mid = Math.floor(this.datum.nodes.length / 2)
+      const half = Math.floor(windowSize / 2)
+      const startIdx = Math.max(0, mid - half)
+      const endIdx = Math.min(this.datum.nodes.length - 1, startIdx + windowSize - 1)
+
+      const scale = d3.scaleLinear().domain([this.domain_min_current, this.domain_max_current]).range([0, this.parentWidth])
+      const x0 = scale(this.d_start(this.datum.nodes[startIdx]))
+      const x1 = scale(this.d_end(this.datum.nodes[endIdx]))
+
+      if (x1 <= x0) {
+        return
+      }
+
+      const k = this.parentWidth / (x1 - x0)
+      this.emitEvent('updateZoom', d3.zoomIdentity.scale(k).translate(-x0, 0))
+    },
     render_mapper() {
 
       const scale_overview = d3.scaleLinear().clamp(true).domain([this.domain_min_current, this.domain_max_current]).range([0, this.CurrentWidth - 2]);
@@ -444,14 +447,14 @@ export default {
                   .attr('opacity', 0.8)
                   .attr('width', d => scale(this.d_end(d)) - scale(this.d_start(d)))
                   .attr('height', d => {
-                    return this.settings.heightAccessor_overview == null ? scale_height : scale_height(d.data[this.settings.heightAccessor_overview])
+                    return this.settings.heightAccessor == null ? scale_height : scale_height(d.data[this.settings.heightAccessor])
                   })
                   .attr("fill", this.color_gene_overview)
                   .attr('transform', d => {
-                    if (this.settings.heightAccessor_overview == null) {
+                    if (this.settings.heightAccessor == null) {
                       return 'translate(0, 0)'
                     } else {
-                      var y = this.settings.svgHeight_overview - scale_height(d.data[this.settings.heightAccessor_overview])
+                      var y = this.settings.svgHeight_overview - scale_height(d.data[this.settings.heightAccessor])
                       return `translate( 0,${y})`
                     }
                   }),
@@ -460,13 +463,13 @@ export default {
                   .attr('y', 0)
                   .attr('width', d => scale(this.d_end(d)) - scale(this.d_start(d)))
                   .attr('height', d => {
-                    return this.settings.heightAccessor_overview == null ? scale_height : scale_height(d.data[this.settings.heightAccessor_overview])
+                    return this.settings.heightAccessor == null ? scale_height : scale_height(d.data[this.settings.heightAccessor])
                   })
                   .attr('transform', d => {
-                    if (this.settings.heightAccessor_overview == null) {
+                    if (this.settings.heightAccessor == null) {
                       return 'translate(0, 0)'
                     } else {
-                      var y = this.settings.svgHeight_overview - scale_height(d.data[this.settings.heightAccessor_overview])
+                      var y = this.settings.svgHeight_overview - scale_height(d.data[this.settings.heightAccessor])
                       return `translate(0, ${y})`
                     }
                   })
@@ -519,7 +522,7 @@ export default {
                   .attr('y', this.margin_top_svg)
                   .attr('width', d => scale(this.d_end(d)) - scale(this.d_start(d)))
                   .attr('height', d => {
-                    return this.settings.heightAccessor_excerpt == null ? scale_height : scale_height(d.data[this.settings.heightAccessor_excerpt])
+                    return this.settings.heightAccessor == null ? scale_height : scale_height(d.data[this.settings.heightAccessor])
                   })
                   .attr('opacity', 0.8)
                   .on('click', (event, d) => this.showMenu(event, d))
@@ -530,7 +533,7 @@ export default {
                   .attr('y', this.margin_top_svg)
                   .attr('width', d => scale(this.d_end(d)) - scale(this.d_start(d)))
                   .attr('height', d => {
-                    return this.settings.heightAccessor_excerpt == null ? scale_height : scale_height(d.data[this.settings.heightAccessor_excerpt])
+                    return this.settings.heightAccessor == null ? scale_height : scale_height(d.data[this.settings.heightAccessor])
                   })
                   .attr('opacity', 0.8)
                   .on('click', (event, d) => this.showMenu(event, d))
@@ -682,19 +685,19 @@ export default {
     // SCALE & COLOR
     color_gene_overview(d) {
 
-      if (this.settings.colorAccessor_overview === null) {
+      if (this.settings.colorAccessor === null) {
         return this.settings.defaut_gene_color
       }
 
-      return this.color_scale_overview(d.data[this.settings.colorAccessor_overview])
+      return this.color_scale(d.data[this.settings.colorAccessor])
 
     },
     set_height_gene_overview_scale() {
 
-      if (this.settings.heightAccessor_overview === null) {
+      if (this.settings.heightAccessor === null) {
         return this.settings.svgHeight_overview;
       } else {
-        const extent = this.settings.data_metrics.numerical[this.settings.heightAccessor_overview]
+        const extent = this.settings.data_metrics.numerical[this.settings.heightAccessor]
         return d3.scaleLinear().clamp(true).domain([extent.min, extent.max]).range([0, this.settings.svgHeight_overview]);
       }
 
@@ -710,11 +713,11 @@ export default {
         return this.settings.selected_gene_color
       }
 
-      if (this.settings.colorAccessor_excerpt === null) {
+      if (this.settings.colorAccessor === null) {
         return this.settings.defaut_gene_color
       }
 
-      return this.color_scale_excerpt(d.data[this.settings.colorAccessor_excerpt])
+      return this.color_scale(d.data[this.settings.colorAccessor])
 
     },
     color_edge_excerpt(d) {
@@ -723,20 +726,20 @@ export default {
         return this.settings.selected_gene_color
       }
 
-      if (this.settings.colorAccessor_excerpt_edge === null) {
+      if (this.settings.colorAccessor_edge === null) {
         return this.settings.defaut_gene_color
       }
 
-      return this.color_scale_excerpt_edge(d.data[this.settings.colorAccessor_excerpt_edge])
+      return this.color_scale_edge(d.data[this.settings.colorAccessor_edge])
 
     },
     gene_height_excerpt(scale_height, d) {
-      return this.settings.heightAccessor_excerpt == null ? scale_height : scale_height(d.data[this.settings.heightAccessor_excerpt])
+      return this.settings.heightAccessor == null ? scale_height : scale_height(d.data[this.settings.heightAccessor])
     },
     gene_vertical_transform(scale_height, d) {
       // centers the gene (and its direction triangle, via the same formula) on the edge line at svgHeight/2,
       // rather than anchoring it to the bottom of the excerpt
-      if (this.settings.heightAccessor_excerpt == null) {
+      if (this.settings.heightAccessor == null) {
         return 'translate(0, 0)'
       }
       const height = this.gene_height_excerpt(scale_height, d)
@@ -763,7 +766,7 @@ export default {
       // same vertical anchor as the gene rect (gene_vertical_transform) so the triangle and its
       // gene box always stay aligned, only expressed as an absolute y instead of a translate delta
       const height = this.gene_height_excerpt(scale_height, d)
-      const ty = this.settings.heightAccessor_excerpt == null ? 0 : (this.settings.svgHeight - height) / 2
+      const ty = this.settings.heightAccessor == null ? 0 : (this.settings.svgHeight - height) / 2
       if (d.data.strand === '-') {
         return `translate(${scale(this.d_start(d))}, ${ty}) scale(-1,1)`
       }
@@ -776,12 +779,12 @@ export default {
     },
     set_height_gene_excerpt_scale() {
 
-      if (this.settings.heightAccessor_excerpt === null) {
+      if (this.settings.heightAccessor === null) {
         return this.settings.svgHeight;
       }
 
       else {
-        const extent = this.settings.data_metrics.numerical[this.settings.heightAccessor_excerpt]
+        const extent = this.settings.data_metrics.numerical[this.settings.heightAccessor]
         return d3.scaleLinear().clamp(true).domain([extent.min, extent.max]).range([0, this.settings.svgHeight]);
       }
 
@@ -1003,7 +1006,7 @@ export default {
 
     // UTILS
     pretty_locus(l) {
-      return d3.format(",.9r")(parseInt(l))
+      return d3.format(",d")(Math.round(l))
     },
     isInSelectedRegion(d) {
       return this.datum.selectedRegions.some(([x0, x1]) => this.d_start(d) >= x0 && this.d_end(d) <= x1);
@@ -1055,6 +1058,7 @@ export default {
   mounted() {
     this.parentWidth = this.$refs['interface_chr_small_container'].offsetWidth - (window.innerWidth * 0.04);
     this.CurrentWidth = this.getCurrentWidth()
+    this.applyDefaultExcerptZoom()
     this.render_excerpt();
     this.render_mapper();
     this.render_overview();

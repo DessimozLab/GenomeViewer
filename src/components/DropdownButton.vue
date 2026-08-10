@@ -1,7 +1,7 @@
 <template>
   <div class="dropdown">
-    <button :id="id" class="btn btn-outline-dark me-2" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-      <i :class="icon"></i>
+    <button :id="id" :class="buttonClasses" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+      <i v-if="icon" :class="icon"></i>
       <span :style="spanStyle">{{ text }} <i class="bi bi-caret-down"></i></span>
 
       <span v-if="isValueSelected && !no_indicator"  class=" indicator_changed badge bg-danger position-absolute top-0  translate-middle p-1 border border-light rounded-circle">
@@ -43,8 +43,15 @@ export default {
       type: String,
       default: 'font-size: 10px;display: block;',
     },
+    variant: {
+      type: String,
+      default: 'button', // 'button' | 'text'
+    },
   },
   computed: {
+    buttonClasses() {
+      return this.variant === 'text' ? 'btn btn-link text-dark p-0 dropdown-text-toggle' : 'btn btn-outline-dark me-2';
+    },
     option_w_null() {
       // if for edge remove all options that finish with _edge
       if (this.no_default) {
@@ -81,6 +88,15 @@ export default {
 .scrollable-dropdown {
   max-height: 400px; /* Set the maximum height */
   overflow-y: auto; /* Enable vertical scrolling */
+}
+
+.dropdown-text-toggle {
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.dropdown-text-toggle:hover {
+  text-decoration: underline;
 }
 
 </style>

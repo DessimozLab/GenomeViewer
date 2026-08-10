@@ -1,4 +1,5 @@
 <template>
+
   <div id="main_container" :class="{ 'sticky-top offset_oma': this.settings.oma, 'sticky-top': !this.settings.oma}">
 
 
@@ -26,7 +27,7 @@
           :settings="settings"
           @close="hideModal"
       />
-      
+
       <ButtonWithIcon
           v-if="isNotAncestral"
           id="button_type"
@@ -42,21 +43,22 @@
           text="Export SVG"
           @click="emitEvent('export-svg')"
       />
-      
+
       <ButtonWithIcon
+          v-if="!settings.hide_detail_button"
           id="button_hide"
           :icon="hideIcon"
           text="Detail"
           @click="emitEvent('toggle-hide')"
       />
-      
+
       <ButtonWithIcon
           id="button_sorting"
           :icon="sortingIcon"
           :text="sortingText"
           @click="emitEvent('toggle-sorting')"
       />
-      
+
       <ButtonWithIcon
           id="button_selection"
           :text="modeText"
@@ -64,162 +66,61 @@
           @click="emitEvent('toggle-mode')"
       />
 
-      <DropdownButton
-          id="button_color_scheme"
-          v-model="localColorScheme"
-          :options="localColorList"
-          icon="bi bi-palette2"
-          text="Color Scheme"
-          :no_default="true"
-          :no_indicator="true"
-          @change="emitEvent('update-color-scheme', $event)"
-      />
-
-      <ButtonWithIcon
-          class="me-2"
-          data-bs-target="#toggleDivColor"
-          data-bs-toggle="collapse"
-          icon="bi bi-paint-bucket"
-          text="Set Color"
-      />
-
       <ButtonWithIcon
           class="me-2"
           data-bs-target="#toggleDiv"
           data-bs-toggle="collapse"
           icon="bi bi-highlights"
-          text="Color Legend"
+          text="Legend"
       />
 
     </div>
 
-    <div id="toggleDivColor" class="collapse" style="margin:12px; padding: 24px; background-color: rgba(200,200,200,0.1)">
+    <div id="toggleDiv" class="collapse show" style="margin:12px; padding: 24px; background-color: rgba(200,200,200,0.1)">
 
-      <div class="d-flex justify-content-end ">
-
-        <DropdownButton
-            id="button_color_overview"
-            v-model="localColorAccessorOverview"
-            :options="statesColorGenes"
-            icon="bi bi-paint-bucket"
-            text="Gene"
-            @change="emitEvent('update-color-overview', $event)"
-        />
+      <div class="d-flex justify-content-end">
 
         <DropdownButton
-            id="button_height_overview"
-            v-model="localHeightAccessorOverview"
-            :options="statesColorGenes"
-            icon="bi bi-arrows-vertical"
-            text="Gene"
-            @change="emitEvent('update-height-overview', $event)"
+            id="button_color_scheme"
+            v-model="localColorScheme"
+            :options="localColorList"
+            icon="bi bi-palette2"
+            text="Scheme"
+            :no_default="true"
+            :no_indicator="true"
         />
-
-        <VerticalTextDivider text="Overview"/>
-
-        <DropdownButton
-            id="button_color_excerpt"
-            v-model="localColorAccessorExcerpt"
-            :options="statesColorGenes"
-            icon="bi bi-paint-bucket"
-            text="Gene"
-            @change="emitEvent('update-color-excerpt', $event)"
-        />
-
-        <DropdownButton
-            id="button_height_excerpt"
-            v-model="localHeightAccessorExcerpt"
-            :options="statesColorGenes"
-            icon="bi bi-arrows-vertical"
-            text="Gene"
-            @change="emitEvent('update-height-excerpt', $event)"
-        />
-
-        <DropdownButton
-            id="button_color_edge_excerpt"
-            v-model="localColorEdgeAccessorExcerpt"
-            :options="statesColorGenes"
-            icon="bi bi-paint-bucket"
-            text="Edge"
-            :for_edge="true"
-            @change="emitEvent('update-color_edge-excerpt', $event)"
-        />
-
-        <VerticalTextDivider text="Excerpt"/>
 
       </div>
 
+      <LegendColorRow
+          id="button_color"
+          ref="legendColorRow"
+          label="Gene color"
+          v-model:accessor="localColorAccessor"
+          :options="statesColorGenes"
+          :settings="settings"
+          @update-extent="updateExtent"
+      />
 
+      <LegendColorRow
+          id="button_color_edge"
+          label="Edge color"
+          v-model:accessor="localColorAccessorEdge"
+          :options="statesColorGenes"
+          :forEdge="true"
+          :settings="settings"
+          @update-extent="updateExtent"
+      />
 
-    </div>
+      <LegendHeightRow
+          id="button_height"
+          ref="legendHeightRow"
+          v-model:accessor="localHeightAccessor"
+          :options="statesColorGenes"
+          :settings="settings"
+          @update-extent="updateExtent"
+      />
 
-    <div id="toggleDiv" class="collapse text-center" style="margin:12px; padding: 24px; background-color: rgba(200,200,200,0.1)">
-
-      <div v-if="!hasColorLegend">
-        No scale selected
-      </div>
-      <div v-else>
-
-        <div id="strand_legend" class="d-inline-block mx-3 align-top" style="font-family: monospace; text-align: left" v-if="hasStrandLegend">
-          <div><b>Gene direction</b></div>
-          <div>&#9654; plus strand</div>
-          <div>&#9664; minus strand</div>
-        </div>
-
-        <ColorLegend
-            ref="colorLegendOverview"
-            id="color_legend_overview"
-            :settings = "this.settings"
-            :min_base="this.settings.data_metrics.numerical[localColorAccessorOverview]?.min"
-            :max_base="this.settings.data_metrics.numerical[localColorAccessorOverview]?.max"
-            :text='localColorAccessorOverview'
-            v-if="this.localColorAccessorOverview && this.settings.data_metrics.numerical[localColorAccessorOverview]"
-            @update-extent="updateExtent"
-        />
-
-        <ColorLegend
-            id="color_legend_local"
-            :settings = "this.settings"
-            :min_base="this.settings.data_metrics.numerical[localColorAccessorExcerpt]?.min"
-            :max_base="this.settings.data_metrics.numerical[localColorAccessorExcerpt]?.max"
-            :text='localColorAccessorExcerpt'
-            v-if="this.localColorAccessorExcerpt && this.settings.data_metrics.numerical[localColorAccessorExcerpt] && localColorAccessorExcerpt !== localColorAccessorOverview"
-            @update-extent="updateExtent"
-        />
-
-        <ColorLegend
-            id="color_legend_edge"
-            :settings = "this.settings"
-            :min_base="this.settings.data_metrics.numerical[localColorEdgeAccessorExcerpt]?.min"
-            :max_base="this.settings.data_metrics.numerical[localColorEdgeAccessorExcerpt]?.max"
-            :text='localColorEdgeAccessorExcerpt'
-            v-if="this.localColorEdgeAccessorExcerpt && this.settings.data_metrics.numerical[localColorEdgeAccessorExcerpt] && localColorEdgeAccessorExcerpt !== localColorAccessorOverview && localColorEdgeAccessorExcerpt !== localColorAccessorExcerpt"
-            @update-extent="updateExtent"
-        />
-
-        <ColorLegendVertical
-            ref="heightLegendOverview"
-            id="height_legend_overview"
-            :settings = "this.settings"
-            :min_base="this.settings.data_metrics.numerical[localHeightAccessorOverview]?.min"
-            :max_base="this.settings.data_metrics.numerical[localHeightAccessorOverview]?.max"
-            :text='localHeightAccessorOverview'
-            v-if="this.localHeightAccessorOverview && this.settings.data_metrics.numerical[localHeightAccessorOverview] && localHeightAccessorOverview !== localColorEdgeAccessorExcerpt && localHeightAccessorOverview !== localColorAccessorOverview && localHeightAccessorOverview !== localColorAccessorExcerpt"
-            @update-extent="updateExtent"
-        />
-
-        <ColorLegendVertical
-            id="height_legend_excerpt"
-            :settings = "this.settings"
-            :min_base="this.settings.data_metrics.numerical[localHeightAccessorExcerpt]?.min"
-            :max_base="this.settings.data_metrics.numerical[localHeightAccessorExcerpt]?.max"
-            :text='localHeightAccessorExcerpt'
-            v-if="this.localHeightAccessorExcerpt && this.settings.data_metrics.numerical[localHeightAccessorExcerpt] && localHeightAccessorOverview !== localHeightAccessorExcerpt "
-            @update-extent="updateExtent"
-        />
-
-
-      </div>
     </div>
 
 
@@ -227,23 +128,21 @@
 </template>
 
 <script>
-import VerticalTextDivider from './VerticalTextDivider.vue';
 import ButtonWithIcon from './ButtonWithIcon.vue';
 import DropdownButton from './DropdownButton.vue';
 import SelectedGenesModal from './SelectedGenesModal.vue';
-import ColorLegend from './ColorLegend.vue';
-import ColorLegendVertical from './ColorLegendVertical.vue';
+import LegendColorRow from './LegendColorRow.vue';
+import LegendHeightRow from './LegendHeightRow.vue';
 
 
 export default {
   name: 'SettingsUI',
   components: {
-    VerticalTextDivider,
     ButtonWithIcon,
     DropdownButton,
     SelectedGenesModal,
-    ColorLegend,
-    ColorLegendVertical,
+    LegendColorRow,
+    LegendHeightRow,
   },
   props: {
     settings_base: Object,
@@ -254,43 +153,28 @@ export default {
       isModalVisible: false,
       searchQuery: '',
       settings : this.settings_base,
-      localColorAccessorOverview: this.settings_base.colorAccessor_overview,
-      localHeightAccessorOverview: this.settings_base.heightAccessor_overview,
-      localColorAccessorExcerpt: this.settings_base.colorAccessor_excerpt,
-      localHeightAccessorExcerpt: this.settings_base.heightAccessor_excerpt,
-      localColorEdgeAccessorExcerpt : this.settings_base.colorAccessor_excerpt_edge,
-      localColorScheme: this.settings_base.colorScheme,
+      localColorAccessor: this.settings_base.colorAccessor,
+      localHeightAccessor: this.settings_base.heightAccessor,
+      localColorAccessorEdge: this.settings_base.colorAccessor_edge,
+      localColorScheme: this.settings_base.color_scheme,
       localColorList: Object.keys(this.settings_base.color_scheme_list),
     };
   },
   watch: {
-    localColorAccessorOverview(newVal) {
-      this.emitEvent('update-color-overview', newVal);
+    localColorAccessor(newVal) {
+      this.emitEvent('update-color', newVal);
     },
-    localHeightAccessorOverview(newVal) {
-      this.emitEvent('update-height-overview', newVal);
+    localHeightAccessor(newVal) {
+      this.emitEvent('update-height', newVal);
     },
-    localColorAccessorExcerpt(newVal) {
-      this.emitEvent('update-color-excerpt', newVal);
-    },
-    localHeightAccessorExcerpt(newVal) {
-      this.emitEvent('update-height-excerpt', newVal);
-    },
-    localColorEdgeAccessorExcerpt(newVal) {
-      this.emitEvent('update-color-excerpt_edge', newVal);
+    localColorAccessorEdge(newVal) {
+      this.emitEvent('update-color-edge', newVal);
     },
     localColorScheme(newVal) {
       this.emitEvent('update-color-scheme', newVal);
     },
   },
   computed: {
-    hasColorLegend() {
-      return this.localColorAccessorOverview || this.localColorAccessorExcerpt || this.localColorEdgeAccessorExcerpt || this.localHeightAccessorOverview || this.localHeightAccessorExcerpt || this.hasStrandLegend;
-    },
-    hasStrandLegend() {
-      return !!(this.settings.data_metrics.categorical && this.settings.data_metrics.categorical['strand']);
-    },
-
     // GETTER
     hasSelectedGenes() {
       return this.selectedGenes.length > 0;
@@ -360,10 +244,9 @@ export default {
     hideModal() {
       this.isModalVisible = false;
     },
-    updateExtent({ min, max, steps, accessor  }) {
+    updateExtent({ min, max, accessor }) {
       this.settings.data_metrics.numerical[accessor].min = min;
       this.settings.data_metrics.numerical[accessor].max = max;
-      this.settings.data_metrics.numerical[accessor].steps = steps;
     },
     handleSearch() {
       this.emitEvent('search', this.searchQuery);
