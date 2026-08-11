@@ -49,6 +49,7 @@ export default {
         'type_position': 'loci',
         'hide': false, // detail view
         'hide_detail_button': false, // hides the "Detail" toolbar button (config-only, for embedding apps)
+        'hide_sorting_button': false, // hides the "Sort by" toolbar button (config-only, for embedding apps)
         'mode': 'zoom',
         'defaut_gene_color': 'lightgrey',
         'oma' : false,
@@ -851,6 +852,7 @@ export default {
       // force the type_position to index if the type_chromosome is ancestral
       if (this.settings.type_chromosome === 'ancestral') {
         this.settings.type_position = 'index';
+        this.states_sorting = ['number_genes', 'name'];
       }
     }
   },

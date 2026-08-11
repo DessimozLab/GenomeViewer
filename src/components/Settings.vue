@@ -53,6 +53,7 @@
       />
 
       <ButtonWithIcon
+          v-if="!settings.hide_sorting_button"
           id="button_sorting"
           :icon="sortingIcon"
           :text="sortingText"
@@ -186,7 +187,7 @@ export default {
       return this.settings.sorting_chromosome === 'size' ? 'bi bi-sort-up' : this.settings.sorting_chromosome === 'number_genes' ? 'bi bi-sort-numeric-up-alt' : 'bi bi-sort-alpha-up';
     },
     sortingText() {
-      return 'Sort by ' + (this.settings.sorting_chromosome === 'size' ? 'Size' : this.settings.sorting_chromosome === 'number_genes' ? 'Genes' : 'Name');
+      return 'Sort by ' + (this.settings.sorting_chromosome === 'size' ? 'Size' : this.settings.sorting_chromosome === 'number_genes' ? 'Nbr Genes' : 'Name');
     },
     modeText() {
       return this.settings.mode === 'zoom' ? 'Zoom/Pan' : 'Selection';
