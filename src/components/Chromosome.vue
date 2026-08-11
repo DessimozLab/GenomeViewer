@@ -533,7 +533,9 @@ export default {
                   .attr('height', d => {
                     return this.settings.heightAccessor == null ? scale_height : scale_height(d.data[this.settings.heightAccessor])
                   })
-                  .attr('opacity', 0.8)
+                  // acts as an invisible click hit-area under the visible direction arrow, so the
+                  // whole gene footprint stays clickable once the arrow replaces the box visually
+                  .attr('opacity', d => this.has_direction_arrow(d) ? 0 : 0.8)
                   .on('click', (event, d) => this.showMenu(event, d))
                   .attr('transform', d => this.gene_vertical_transform(scale_height, d))
                   .attr('fill', d => this.color_gene_excerpt(d)),
@@ -544,7 +546,7 @@ export default {
                   .attr('height', d => {
                     return this.settings.heightAccessor == null ? scale_height : scale_height(d.data[this.settings.heightAccessor])
                   })
-                  .attr('opacity', 0.8)
+                  .attr('opacity', d => this.has_direction_arrow(d) ? 0 : 0.8)
                   .on('click', (event, d) => this.showMenu(event, d))
                   .attr('transform', d => this.gene_vertical_transform(scale_height, d))
                   .attr('fill', d => this.color_gene_excerpt(d)),
@@ -582,20 +584,20 @@ export default {
                   .attr('stroke-width', 2),
           );
 
-      // painted last so the direction arrows stay in front of the gene rects and the edge lines
+      // painted last so the direction arrows stay in front of the (now invisible) gene rects and the edge lines
       svg_excerpt.selectAll('.gene_direction_triangle')
-          .data(this.show_direction_triangles ? this.datum.nodes.filter(d => d.data.strand === '+' || d.data.strand === '-') : [])
+          .data(this.datum.nodes.filter(d => this.has_direction_arrow(d)))
           .join(
               enter => enter.append('path')
                   .attr('class', 'gene_direction_triangle')
                   .attr('d', d => this.direction_triangle_path(scale, scale_height, d))
-                  .attr('transform', d => this.direction_triangle_transform(scale, scale_height, d))
-                  .attr('opacity', d => this.direction_triangle_opacity(scale, d))
+                  .attr('transform', d => this.gene_vertical_transform(scale_height, d))
+                  .attr('opacity', 0.8)
+                  .on('click', (event, d) => this.showMenu(event, d))
                   .attr('fill', d => this.color_gene_excerpt(d)),
               update => update
                   .attr('d', d => this.direction_triangle_path(scale, scale_height, d))
-                  .attr('transform', d => this.direction_triangle_transform(scale, scale_height, d))
-                  .attr('opacity', d => this.direction_triangle_opacity(scale, d))
+                  .attr('transform', d => this.gene_vertical_transform(scale_height, d))
                   .attr('fill', d => this.color_gene_excerpt(d)),
               exit => exit.remove()
           );
@@ -627,9 +629,7 @@ export default {
             .attr('x2', (d,i) => newScale(this.d_start(this.datum.nodes[i+1])))
 
         svg_excerpt.selectAll('.gene_direction_triangle')
-            .attr('d', d => this.direction_triangle_path(newScale, scale_height, d))
-            .attr('transform', d => this.direction_triangle_transform(newScale, scale_height, d))
-            .attr('opacity', d => this.direction_triangle_opacity(newScale, d));
+            .attr('d', d => this.direction_triangle_path(newScale, scale_height, d));
 
       };
 
@@ -755,36 +755,22 @@ export default {
       const y = (this.settings.svgHeight - height) / 2
       return `translate(0, ${y})`
     },
-    gene_width_excerpt(scale, d) {
-      return scale(this.d_end(d)) - scale(this.d_start(d))
-    },
-    direction_triangle_glyph_width(scale, d) {
-      // scales up with the gene's on-screen width so the arrow stays readable once zoomed in,
-      // but never shrinks below the baseline or grows past the cap for very wide genes
-      const width = this.gene_width_excerpt(scale, d) * this.direction_triangle_width_ratio
-      return Math.min(this.max_direction_triangle_width, Math.max(this.min_direction_triangle_width, width))
+    has_direction_arrow(d) {
+      return this.show_direction_triangles && (d.data.strand === '+' || d.data.strand === '-')
     },
     direction_triangle_path(scale, scale_height, d) {
-      // a triangle pointing right, flush against local x=0; translate/mirror in the transform
-      // positions and orients it per-gene without ever having to recompute this path on zoom
+      // arrow glyph spanning the gene's real d_start..d_end footprint: a blunt box for the tail
+      // (gene_arrow_box_ratio of the width) and a triangle for the rest, tip in the strand direction
       const height = this.gene_height_excerpt(scale_height, d)
-      const width = this.direction_triangle_glyph_width(scale, d)
-      return `M0,0 L0,${height} L${width},${height / 2} Z`
-    },
-    direction_triangle_transform(scale, scale_height, d) {
-      // same vertical anchor as the gene rect (gene_vertical_transform) so the triangle and its
-      // gene box always stay aligned, only expressed as an absolute y instead of a translate delta
-      const height = this.gene_height_excerpt(scale_height, d)
-      const ty = this.settings.heightAccessor == null ? 0 : (this.settings.svgHeight - height) / 2
+      const x0 = scale(this.d_start(d))
+      const x1 = scale(this.d_end(d))
+      const boxWidth = (x1 - x0) * this.gene_arrow_box_ratio
       if (d.data.strand === '-') {
-        return `translate(${scale(this.d_start(d))}, ${ty}) scale(-1,1)`
+        const xb = x1 - boxWidth
+        return `M${x1},0 L${x1},${height} L${xb},${height} L${x0},${height / 2} L${xb},0 Z`
       }
-      return `translate(${scale(this.d_end(d))}, ${ty})`
-    },
-    direction_triangle_opacity(scale, d) {
-      // hide the triangle once the gene itself is too narrow on screen to draw it legibly;
-      // 0.8 matches the gene rect's own opacity so the arrow doesn't look more solid than its gene
-      return this.gene_width_excerpt(scale, d) >= this.min_gene_width_for_direction ? 0.8 : 0
+      const xb = x0 + boxWidth
+      return `M${x0},0 L${x0},${height} L${xb},${height} L${x1},${height / 2} L${xb},0 Z`
     },
     set_height_gene_excerpt_scale() {
 
@@ -1083,10 +1069,7 @@ export default {
       menuContent: [],
       color_scheme: this.settings.color_scheme_list[this.settings.color_scheme],
       color_scheme_edge: this.settings.color_scheme_list[this.settings.color_scheme_edge],
-      min_direction_triangle_width: 5,
-      max_direction_triangle_width: 10,
-      direction_triangle_width_ratio: 0.2,
-      min_gene_width_for_direction: 18,
+      gene_arrow_box_ratio: 0.2,
     }
   },
   emits: ['chromosome-event'],
