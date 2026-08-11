@@ -1,5 +1,5 @@
 <template>
-  <div class="modal" tabindex="-1" style="display: block;">
+  <div class="modal" tabindex="-1" style="display: block;" @click.self="$emit('close')">
     <div class="modal-dialog modal-xl ">
       <div class="modal-content">
         <div class="modal-header">
@@ -42,6 +42,7 @@
       </table>
     </div>
     <div class="modal-footer">
+      <button type="button" class="btn btn-primary" @click="saveSelectedGenes">Save</button>
       <button type="button" class="btn btn-secondary" @click="$emit('close')">Close</button>
     </div>
   </div>
@@ -101,6 +102,18 @@ methods: {
 
 
 
+  },
+  saveSelectedGenes() {
+    const jsonBlob = new Blob([JSON.stringify(this.selectedGenes, null, 2)], { type: "application/json;charset=utf-8" });
+    const url = URL.createObjectURL(jsonBlob);
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "selected_genes.json";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   }
 },
 created() {
