@@ -563,11 +563,14 @@ export default {
                   .attr('x2', (d,i) => scale(this.d_start(this.datum.nodes[i + 1])))
                   .attr('y2',this.settings.svgHeight / 2)
                   .attr('stroke', d =>  this.color_edge_excerpt(d))
-                  .attr('stroke-width', this.settings.edge_height),
+                  .attr('stroke-width', this.settings.edge_height)
+                  .attr('cursor', 'pointer')
+                  .on('click', (event, d) => this.showEdgeMenu(event, d, this.datum.nodes[d.index + 1])),
               update => update
                   .attr('x1', (d) => scale(this.d_end(d)))
                   .attr('x2', (d,i) => scale(this.d_start(this.datum.nodes[i + 1])))
-                  .attr('stroke',d =>  this.color_edge_excerpt(d)),
+                  .attr('stroke',d =>  this.color_edge_excerpt(d))
+                  .on('click', (event, d) => this.showEdgeMenu(event, d, this.datum.nodes[d.index + 1])),
               exit => exit.remove()
           );
 
@@ -835,28 +838,14 @@ export default {
         }
       }
 
-      // Display additional data metrics, grouped into "Gene" (incl. start/end position)
-      // and "Edge" sections, each sorted alphabetically for easier reading
+      // Display additional data metrics, grouped into a "Gene" section (incl. start/end
+      // position), sorted alphabetically for easier reading. Edge-derived metrics are shown
+      // in their own tooltip via showEdgeMenu, not here.
       const addSectionHeader = (title) => {
         this.menuContent.push({type: 'text', content: `<hr style="margin-top: 0.1em; margin-bottom: 0.2em"> <b>${title}</b> <hr style="margin-top: 0.1em; margin-bottom: 0.2em">`, click:null, style: null})
       }
 
-      const geneKeys = new Set()
-      const edgeKeys = new Set()
-
-      const collectKeys = (metrics) => {
-        if (!metrics) return
-        for (const key of Object.keys(metrics)) {
-          if (key.endsWith('_edge')) {
-            edgeKeys.add(key)
-          } else {
-            geneKeys.add(key)
-          }
-        }
-      }
-
-      collectKeys(this.settings.data_metrics.categorical)
-      collectKeys(this.settings.data_metrics.numerical)
+      const { geneKeys } = this.collect_metric_keys()
 
       addSectionHeader('Gene')
 
@@ -868,15 +857,6 @@ export default {
       Array.from(geneKeys).sort((a, b) => a.localeCompare(b)).forEach(key => {
         this.menuContent.push({type: 'text', content: `<span><b>${key}:</b> ${d.data[key]}</span>`, click:null, style: null})
       })
-
-      if (edgeKeys.size > 0) {
-        addSectionHeader('Edge')
-
-        Array.from(edgeKeys).sort((a, b) => a.localeCompare(b)).forEach(key => {
-          const label = key.slice(0, -'_edge'.length)
-          this.menuContent.push({type: 'text', content: `<span><b>${label}:</b> ${d.data[key]}</span>`, click:null, style: null})
-        })
-      }
 
       // add Action button
       if (this.settings.oma) {
@@ -939,6 +919,51 @@ export default {
       this.menuVisible = true;
 
 
+
+    },
+    // splits every key seen across the dataset's data_metrics into gene-level keys and
+    // edge-level keys (the '_edge' suffix added by GenomeViewer's bind_links_to_nodes),
+    // shared by showMenu (gene tooltip) and showEdgeMenu (edge tooltip)
+    collect_metric_keys() {
+      const geneKeys = new Set()
+      const edgeKeys = new Set()
+
+      const collectKeys = (metrics) => {
+        if (!metrics) return
+        for (const key of Object.keys(metrics)) {
+          if (key.endsWith('_edge')) {
+            edgeKeys.add(key)
+          } else {
+            geneKeys.add(key)
+          }
+        }
+      }
+
+      collectKeys(this.settings.data_metrics.categorical)
+      collectKeys(this.settings.data_metrics.numerical)
+
+      return { geneKeys, edgeKeys }
+    },
+    showEdgeMenu(event, leftGene, rightGene) {
+
+      this.menuPosition = {x: event.pageX, y: event.pageY};
+
+      this.menuContent = []
+
+      this.menuContent.push({class: 'title', content: `${leftGene.id} — ${rightGene.id}`, click:null, style: "font-size: 1.2em; font-weight: bold; margin-bottom: 0.5em;text-align: center;"})
+
+      const { edgeKeys } = this.collect_metric_keys()
+
+      if (edgeKeys.size === 0) {
+        this.menuContent.push({type: 'text', content: '<span>No edge data available</span>', click:null, style: null})
+      } else {
+        Array.from(edgeKeys).sort((a, b) => a.localeCompare(b)).forEach(key => {
+          const label = key.slice(0, -'_edge'.length)
+          this.menuContent.push({type: 'text', content: `<span><b>${label}:</b> ${leftGene.data[key]}</span>`, click:null, style: null})
+        })
+      }
+
+      this.menuVisible = true;
 
     },
     get_selected_genes() {
