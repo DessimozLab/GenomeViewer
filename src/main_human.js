@@ -3,6 +3,8 @@ import GenomeViewer from './GenomeViewer.vue'
 
 var settings = {
     'type_chromosome': 'extant',
+    'oma': true,
+    'oma_api_url': 'https://omabrowser.org',
     'sorting_chromosome': 'size',
         'remove_outliers_legend': ['weight'],
 }

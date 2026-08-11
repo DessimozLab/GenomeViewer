@@ -8,7 +8,9 @@ var settings = {
     'heightAccessor' : 'nr_members',
     //'hide_sorting_button': true,
     'hide_detail_button': true,
+    'oma': true,
     'min_genes': 15,
+    'oma_api_url': 'https://omabrowser.org',
     'force_extent_numerical': {'nr_members': {'min': 0, 'max': 48}},
 
 
