@@ -181,12 +181,12 @@ export default {
 
     // GETTER
     domain_max_current() {
-      const acc = this.settings.type_position === 'index' ? 'index' : 'start'
-      return Math.max(...this.datum.nodes.map(d => d[acc]))
+      // must use d_end, not the raw start/index field, or the rightmost gene's start pins the
+      // domain max and it collapses to zero width on screen (invisible)
+      return Math.max(...this.datum.nodes.map(d => this.d_end(d)))
     },
     domain_min_current() {
-      const acc = this.settings.type_position === 'index' ? 'index' : 'start'
-      return Math.min(...this.datum.nodes.map(d => d[acc]))
+      return Math.min(...this.datum.nodes.map(d => this.d_start(d)))
     },
     chromosome_name() {
       return this.datum.name
