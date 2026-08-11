@@ -857,7 +857,7 @@ export default {
       }
 
       Array.from(geneKeys).sort((a, b) => a.localeCompare(b)).forEach(key => {
-        this.menuContent.push({type: 'text', content: `<span><b>${this.format_metric_label(key)}:</b> ${this.format_metric_value(d.data[key])}</span>`, click:null, style: null})
+        this.menuContent.push({type: 'text', content: `<span><b>${this.format_metric_label(key)}:</b> ${this.format_metric_value(d.data[key])}${this.format_unit(key)}</span>`, click:null, style: null})
       })
 
       // add Action buttons - compact icon+label row (see action_button) rather than three
@@ -972,10 +972,21 @@ export default {
 
       return { geneKeys, edgeKeys }
     },
+    // label/unit are configured externally per metric (settings.metric_meta), keyed by the
+    // exact field name - so 'age_edge' can carry its own label/unit independent of any
+    // gene-level 'age'
+    metric_meta_for(key) {
+      return (this.settings.metric_meta && this.settings.metric_meta[key]) || null
+    },
     // data field names are raw dataset keys (e.g. 'completeness_score') - display them as
-    // words rather than snake_case
+    // words rather than snake_case, unless metric_meta configures an explicit label
     format_metric_label(key) {
-      return key.replace(/_/g, ' ')
+      const meta = this.metric_meta_for(key)
+      if (meta && meta.label) {
+        return meta.label
+      }
+      const baseKey = key.endsWith('_edge') ? key.slice(0, -'_edge'.length) : key
+      return baseKey.replace(/_/g, ' ')
     },
     // raw numeric metrics can carry long floating-point noise (e.g. 0.8330000042915344) -
     // round to 3 decimal places for display; integers (e.g. nr_members) are left untouched
@@ -984,6 +995,10 @@ export default {
         return value.toFixed(3)
       }
       return value
+    },
+    format_unit(key) {
+      const meta = this.metric_meta_for(key)
+      return meta && meta.unit ? ` ${meta.unit}` : ''
     },
     showEdgeMenu(event, leftGene, rightGene) {
 
@@ -1002,8 +1017,8 @@ export default {
         this.menuContent.push({type: 'text', content: '<span>No edge data available</span>', click:null, style: null})
       } else {
         Array.from(edgeKeys).sort((a, b) => a.localeCompare(b)).forEach(key => {
-          const label = this.format_metric_label(key.slice(0, -'_edge'.length))
-          this.menuContent.push({type: 'text', content: `<span><b>${label}:</b> ${this.format_metric_value(leftGene.data[key])}</span>`, click:null, style: null})
+          const label = this.format_metric_label(key)
+          this.menuContent.push({type: 'text', content: `<span><b>${label}:</b> ${this.format_metric_value(leftGene.data[key])}${this.format_unit(key)}</span>`, click:null, style: null})
         })
       }
 

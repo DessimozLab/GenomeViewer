@@ -77,6 +77,15 @@ export default {
         data_metrics: null,
         force_extent_numerical:{},
         remove_outliers_legend: [], // this will override the force_extent_numerical
+        // per-metric display label/unit, keyed by the exact field name as it appears on the node's
+        // `data` bag (so edge-derived keys like 'age_edge' are configured independently of any
+        // gene-level 'age'). Both label and unit are optional; falls back to the raw key name and no unit.
+        metric_meta: {
+          age_edge: {label: 'Age of adjacency', unit: 'mya'},
+          weight_edge: {label: "Nbr of extant gene pairs supporting the adjacency"},
+          completeness_score: {label: 'Completeness score of HOG'},
+          nr_members: {label: "Nbr of extant genes in HOG"},
+        },
 
         // GENE ACCESSORS (shared between the overview bar and the excerpt view)
         'colorAccessor': null,

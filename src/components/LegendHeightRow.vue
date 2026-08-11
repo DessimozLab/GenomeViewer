@@ -9,9 +9,10 @@
           :id="id"
           v-model="localAccessor"
           :options="options"
+          :metric_meta="settings.metric_meta"
           variant="text"
           :no_indicator="true"
-          :text="localAccessor || 'Select metric'"
+          :text="buttonText"
           spanStyle="font-size: 13px; font-weight: 600;"
       />
 
@@ -79,6 +80,18 @@ export default {
   computed: {
     extent() {
       return this.settings.data_metrics.numerical[this.localAccessor];
+    },
+    // label/unit are configured externally per metric (settings.metric_meta), keyed by the exact
+    // field name; height metrics are always gene-level (never '_edge')
+    meta() {
+      return (this.localAccessor && this.settings.metric_meta && this.settings.metric_meta[this.localAccessor]) || null;
+    },
+    buttonText() {
+      if (!this.localAccessor) {
+        return 'Select metric';
+      }
+      const label = (this.meta && this.meta.label) || this.localAccessor;
+      return (this.meta && this.meta.unit) ? `${label} [${this.meta.unit}]` : label;
     },
     maxBarPx() {
       return this.settings.svgHeight;
