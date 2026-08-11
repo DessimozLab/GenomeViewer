@@ -53,6 +53,7 @@ export default {
         'mode': 'zoom',
         'defaut_gene_color': 'lightgrey',
         'oma' : false,
+        'oma_api_url': '',
         'level': null,
         'callback_click_synteny': null,
         'callback_click_detail': null,
