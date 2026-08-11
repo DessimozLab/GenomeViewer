@@ -1008,27 +1008,23 @@ export default {
     },
     set_anchor_position(d) {
 
-      // THIS function is used to set the anchor position of the text for mapper
-
+      // THIS function is used to set the anchor position of the text for mapper.
+      // Must mirror render_mapper's scale_overview exactly (domain_min_current/domain_max_current,
+      // not the cross-chromosome domain_max prop) - otherwise the pixel positions computed here
+      // don't match where the labels actually land, and the overlap check below is meaningless.
       var [min, max] = this.get_min_max()
-      var scale = d3.scaleLinear().clamp(true).domain([0, this.domain_max]).range([0, this.CurrentWidth]);
+      var scale = d3.scaleLinear().clamp(true).domain([this.domain_min_current, this.domain_max_current]).range([0, this.CurrentWidth - 2]);
       var minPixel = scale(min);
       var maxPixel = scale(max);
-      var threshold = 150; // Set a threshold for the minimum pixel distance to avoid overlap
+      var edge_threshold = 50; // keeps a label from clipping off the left/right edge of the mapper
 
-      if (d === min && minPixel < threshold / 2) {
-        return 'start';
+      // min is always right-anchored (grows leftward, away from the excerpt window) and max is
+      // always left-anchored (grows rightward) - as the two ticks converge under heavy zoom they
+      // diverge away from each other instead of overlapping, down to a pixel apart.
+      if (d === min) {
+        return minPixel < edge_threshold ? 'start' : 'end';
       }
-
-      if (d === max && this.CurrentWidth - maxPixel < threshold) {
-        return 'end';
-      }
-      if (Math.abs(maxPixel - minPixel) < threshold / 2) {
-        // If min and max are too close to each other, reverse the anchor position
-        return d === min ? 'end' : 'start';
-      } else {
-        return d === min ? 'middle' : 'middle';
-      }
+      return (this.CurrentWidth - maxPixel) < edge_threshold ? 'end' : 'start';
     },
     get_min_max() {
       var min = this.datum.domain !== null ? this.datum.domain[0] : 0
