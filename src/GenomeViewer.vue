@@ -48,6 +48,8 @@ export default {
         'min_genes': 30, // HUMAN Y chromosome has 47 genes in our dataset
         'type_position': 'loci',
         'hide': false, // detail view
+        'hide_detail_button': false, // hides the "Detail" toolbar button (config-only, for embedding apps)
+        'hide_sorting_button': false, // hides the "Sort by" toolbar button (config-only, for embedding apps)
         'mode': 'zoom',
         'defaut_gene_color': 'lightgrey',
         'oma' : false,
@@ -59,8 +61,9 @@ export default {
         'searchQueries': [],
         'searchQueriesIds': [],
 
-        // COLOR
+        // COLOR (per-channel: Gene color and Edge color each keep their own scheme)
         color_scheme: 'Viridis',
+        color_scheme_edge: 'Viridis',
         color_scheme_list: Object.keys(d3_chrome)
             .filter(key => key.startsWith('interpolate'))
             .reduce((acc, key) => {
@@ -74,10 +77,13 @@ export default {
         force_extent_numerical:{},
         remove_outliers_legend: [], // this will override the force_extent_numerical
 
+        // GENE ACCESSORS (shared between the overview bar and the excerpt view)
+        'colorAccessor': null,
+        'heightAccessor': null,
+        'colorAccessor_edge': null,
+
         // OVERVIEW SETTINGS
         'svgHeight_overview': 40,
-        'colorAccessor_overview': null,
-        'heightAccessor_overview': null,
         'brushed_gene_color': 'salmon',
 
         // MAPPER SETTINGS
@@ -85,9 +91,7 @@ export default {
 
         // EXCERPT SETTINGS
         'svgHeight': 80,
-        'colorAccessor_excerpt': null,
-        'heightAccessor_excerpt': null,
-        'colorAccessor_excerpt_edge': null,
+        'default_excerpt_window_genes': 25,
         'selected_gene_color': 'SkyBlue',
         'edge_height': 8,
       },
@@ -154,23 +158,14 @@ export default {
         case 'toggle-mode':
           this.toggleMode();
           break;
-        case 'update-color-overview':
-          this.toggleColorOverview(payload);
+        case 'update-color':
+          this.toggleColor(payload);
           break;
-        case 'update-height-overview':
-          this.toggleHeightOverview(payload);
+        case 'update-height':
+          this.toggleHeight(payload);
           break;
-        case 'update-color-excerpt':
-          this.toggleColorExcerpt(payload);
-          break;
-        case 'update-height-excerpt':
-          this.toggleHeightExcerpt(payload);
-          break;
-        case 'update-color-excerpt_edge':
-          this.toggleColorExcerpt_edge(payload);
-          break;
-        case 'update-color-scheme':
-          this.toggleColorScheme(payload);
+        case 'update-color-edge':
+          this.toggleColorEdge(payload);
           break;
         case 'search':
           this.search_query(payload);
@@ -198,23 +193,14 @@ export default {
       this.scrollToRect(queryId);
 
     },
-    toggleColorScheme(selectedOption) {
-      this.settings.color_scheme = selectedOption;
+    toggleColor(selectedOption) {
+      this.settings.colorAccessor = selectedOption;
     },
-    toggleColorExcerpt(selectedOption) {
-      this.settings.colorAccessor_excerpt = selectedOption;
+    toggleColorEdge(selectedOption) {
+      this.settings.colorAccessor_edge = selectedOption;
     },
-    toggleColorExcerpt_edge(selectedOption) {
-      this.settings.colorAccessor_excerpt_edge = selectedOption;
-    },
-    toggleHeightExcerpt(selectedOption) {
-      this.settings.heightAccessor_excerpt = selectedOption;
-    },
-    toggleColorOverview(selectedOption) {
-      this.settings.colorAccessor_overview = selectedOption;
-    },
-    toggleHeightOverview(selectedOption) {
-      this.settings.heightAccessor_overview = selectedOption;
+    toggleHeight(selectedOption) {
+      this.settings.heightAccessor = selectedOption;
     },
     toggleMode() {
       this.settings.mode = this.settings.mode === 'zoom' ? 'brush' : 'zoom';
@@ -274,8 +260,8 @@ export default {
 
 
         var offset_legend = 0.5
-        if (this.settings.colorAccessor_overview){ offset_legend += 1 }
-        if (this.settings.heightAccessor_overview){ offset_legend += 1.5 }
+        if (this.settings.colorAccessor){ offset_legend += 1 }
+        if (this.settings.heightAccessor){ offset_legend += 1.5 }
 
         combinedSVG.setAttribute("y", (offset_legend + index) * (this.settings.svgHeight_overview + gutter));
 
@@ -289,11 +275,11 @@ export default {
       finalSVG.setAttribute("height", (svgElements.length+3) * (this.settings.svgHeight_overview + 2*vgutter));
 
       // Add legend if present
-      if (this.settings.colorAccessor_overview){
+      if (this.settings.colorAccessor){
 
         const settingsUI = this.$refs.settingsUI;
-        const colorLegend = settingsUI.$refs.colorLegendOverview;
-        const legend = colorLegend.$refs.legend;
+        const legend = settingsUI.$refs.legendColorRow.trackEl();
+        const extent = this.settings.data_metrics.numerical[this.settings.colorAccessor];
 
         const legendSVG = legend.cloneNode(true);
         legendSVG.setAttribute("x", width_name + gutter);
@@ -303,7 +289,7 @@ export default {
         // min extent
         const textLegend = document.createElementNS("http://www.w3.org/2000/svg", "text");
         textLegend.setAttribute("y", gutter + 40);
-        textLegend.textContent = colorLegend.min_base;
+        textLegend.textContent = extent.min;
         textLegend.setAttribute("x", width_name);
         textLegend.setAttribute("text-anchor", "end");
         textLegend.setAttribute("font-size", "smaller");
@@ -312,20 +298,19 @@ export default {
         // max extent
         const textLegend2 = document.createElementNS("http://www.w3.org/2000/svg", "text");
         textLegend2.setAttribute("y", gutter + 40);
-        textLegend2.textContent = colorLegend.max_base;
+        textLegend2.textContent = extent.max;
         textLegend.setAttribute("font-size", "smaller");
         textLegend2.setAttribute("x", width_name + gutter + legend.width.animVal.value);
         finalSVG.appendChild(textLegend2);
 
       }
 
-      if (this.settings.heightAccessor_overview){
+      if (this.settings.heightAccessor){
 
-        var offset_legend = this.settings.colorAccessor_overview ? 2*gutter + 20 : 0
+        var offset_legend = this.settings.colorAccessor ? 2*gutter + 20 : 0
 
         const settingsUI = this.$refs.settingsUI;
-        const heightLegend = settingsUI.$refs.heightLegendOverview;
-        const legend = heightLegend.$refs.legend;
+        const legend = settingsUI.$refs.legendHeightRow.trackEl();
 
         const legendSVG = legend.cloneNode(true);
         legendSVG.setAttribute("x", width_name + gutter);
@@ -515,7 +500,7 @@ export default {
       datum.size_in_genes = datum['nodes'].length
       datum.unique_id = this.generateUniqueId()
       datum.type = 'ancestral'
-      datum.name = "Ancestral Chromosome " + (1 + idx)
+      datum.name = "Ancestral Contig " + (1 + idx)
 
 
       var look_up = {};
@@ -702,28 +687,16 @@ export default {
 
               // create the key binding in dict if empty
               if (!analysis.numerical[key]) {
-
                 analysis.numerical[key] = { min: value, max: value };
-
-                // if key in remove outliers, add to the list
-                if (this.settings.remove_outliers_legend.includes(key)) {
-                  data_tmp[key] = []
-                  data_tmp[key].push(value)
-                }
-
+                data_tmp[key] = [];
               } else {
                 analysis.numerical[key].min = Math.min(analysis.numerical[key].min, value);
                 analysis.numerical[key].max = Math.max(analysis.numerical[key].max, value);
-
-                if (this.settings.remove_outliers_legend.includes(key)) {
-                  data_tmp[key] = []
-                  data_tmp[key].push(value)
-                }
-
-
-
               }
 
+              // keep every value so quartiles (and, for listed keys, outlier trimming) can be
+              // computed below from the true distribution, not just the running min/max
+              data_tmp[key].push(value)
 
             } else if (typeof value === 'string') {
               if (!analysis.categorical[key]) {
@@ -740,6 +713,13 @@ export default {
         analysis.categorical[key] = Array.from(analysis.categorical[key]);
       });
 
+      // Density curve (for the legend's violin plot) - always computed from the true, untrimmed
+      // distribution and over its own fixed domain, so a later min/max override just changes which
+      // slice of the curve is visible (truncating it) rather than needing to be recomputed.
+      Object.keys(analysis.numerical).forEach(key => {
+        analysis.numerical[key].density = this.computeDensity(data_tmp[key]);
+      });
+
       // Force the extent of numerical data if specify in the settings
 
       Object.keys(analysis.numerical).forEach(key => {
@@ -752,11 +732,58 @@ export default {
             analysis.numerical[key].min = this.settings.force_extent_numerical[key].min;
             analysis.numerical[key].max = this.settings.force_extent_numerical[key].max;
         }
+        else {
+          // Default the active range to the same 1st-99th percentile window the violin draws,
+          // rather than the true min/max - otherwise the legend's numbers (true extremes) and its
+          // violin shape (percentile-trimmed) tell two different stories about the same metric.
+          // Genes past this window still render (clamped to the endpoint color), they just don't
+          // stretch the color scale's dynamic range across a couple of outliers.
+          analysis.numerical[key].min = analysis.numerical[key].density.domainMin;
+          analysis.numerical[key].max = analysis.numerical[key].density.domainMax;
+        }
 
       });
 
       this.settings.data_metrics = analysis;
 
+    },
+    computeDensity(values) {
+      const SAMPLES = 64;
+
+      // The violin's axis is deliberately the 1st-99th percentile, not the true min/max: a single
+      // extreme outlier (common in biological count data) would otherwise squeeze the whole
+      // meaningful distribution into a few unusable pixels at one edge of the plot. The KDE itself
+      // still sums over every value below, so mass beyond this window still shapes the curve near
+      // its edges - it just isn't drawn past that point.
+      const sorted = values.slice().sort((a, b) => a - b);
+      const domainMin = d3.quantileSorted(sorted, 0.01);
+      const domainMax = d3.quantileSorted(sorted, 0.99);
+
+      if (values.length < 2 || domainMin === domainMax) {
+        return {points: [], domainMin, domainMax, maxDensity: 0};
+      }
+
+      // Silverman's rule of thumb, with a floor so a near-flat distribution doesn't collapse to a spike
+      const std = d3.deviation(values) || (domainMax - domainMin) / 4;
+      const bandwidth = Math.max(1.06 * std * Math.pow(values.length, -0.2), (domainMax - domainMin) / 200);
+
+      const step = (domainMax - domainMin) / (SAMPLES - 1);
+      const points = [];
+      let maxDensity = 0;
+
+      for (let i = 0; i < SAMPLES; i++) {
+        const x = domainMin + i * step;
+        let sum = 0;
+        for (let j = 0; j < values.length; j++) {
+          const u = (x - values[j]) / bandwidth;
+          sum += Math.exp(-0.5 * u * u);
+        }
+        const density = sum / (values.length * bandwidth * Math.sqrt(2 * Math.PI));
+        points.push({value: x, density});
+        maxDensity = Math.max(maxDensity, density);
+      }
+
+      return {points, domainMin, domainMax, maxDensity};
     },
     filterOutliers(someArray) {
 
@@ -825,6 +852,7 @@ export default {
       // force the type_position to index if the type_chromosome is ancestral
       if (this.settings.type_chromosome === 'ancestral') {
         this.settings.type_position = 'index';
+        this.states_sorting = ['number_genes', 'name'];
       }
     }
   },

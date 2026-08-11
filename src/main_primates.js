@@ -3,9 +3,11 @@ import GenomeViewer from './GenomeViewer.vue'
 
 var settings = {
     'type_chromosome': 'ancestral',
-    'sorting_chromosome': 'size',
-    'colorAccessor_excerpt' : 'completeness_score',
-    'heightAccessor_excerpt' : 'nr_members',
+    'sorting_chromosome': 'number_genes',
+    'colorAccessor' : 'completeness_score',
+    'heightAccessor' : 'nr_members',
+    //'hide_sorting_button': true,
+    'hide_detail_button': true,
     'min_genes': 15,
     'force_extent_numerical': {'nr_members': {'min': 0, 'max': 48}},
 
