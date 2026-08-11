@@ -53,13 +53,13 @@
 
    <svg ref="svg_excerpt" :width="parentWidth" :height="settings.svgHeight" class="svg-element"></svg>
 
-   <div v-if="menuVisible" :style="{ top: menuPosition.y + 'px', left: menuPosition.x + 'px' }" class="menu">
+   <div v-if="menuVisible" ref="menuEl" :style="{ top: menuPosition.y + 'px', left: menuPosition.x + 'px' }" class="menu">
 
      <div class="tooltip__content__item">
        <button class="close-button" @click="hideMenu">&times;</button>
      </div>
 
-     <div v-for="item in menuContent" :key="item.id" style="margin-right: 36px">
+     <div v-for="item in menuContent" :key="item.id" :style="item.inline ? 'display: inline-block; margin-right: 6px; margin-bottom: 6px;' : 'margin-right: 36px'">
        <div class="tooltip__content__item">
          <div :style=item.style :class="item.class" @click="item.click" v-html="item.content"></div>
        </div>
@@ -160,6 +160,15 @@ export default {
         this.update_renders()
       },
       deep: true,
+    },
+    menuVisible(isVisible) {
+      if (isVisible) {
+        // deferred to the next macrotask so the click that just opened the menu (still
+        // bubbling up to document at this point) doesn't immediately trigger its own close
+        setTimeout(() => document.addEventListener('click', this.handleClickOutside), 0)
+      } else {
+        document.removeEventListener('click', this.handleClickOutside)
+      }
     },
   },
   computed: {
@@ -795,59 +804,52 @@ export default {
 
       this.menuContent = []
 
+      // invalidates any still-pending OMA fetches from a previously opened tooltip, so a slow
+      // response can't splice its content into a menu that has since moved on to another gene
+      const requestId = ++this.menuRequestId
+
       this.menuContent.push({class: 'title', content: d.id , click:null, style: "font-size: 1.2em; font-weight: bold; margin-bottom: 0.5em;text-align: center;"})
 
+      const level_api = this.settings.level ? '?level=' + this.settings.level : ''
 
-      // fetch and display OMA datum
-      if (this.settings.oma){
+      // fetch and display OMA datum - async, with a spinner placeholder, so the tooltip itself
+      // opens immediately instead of blocking on the network round-trip
+      if (this.settings.oma) {
 
-        if (this.settings.type_chromosome === 'extant') {
+        const infoPlaceholder = {type: 'text', content: this.oma_loading_html('Loading protein info…'), click:null, style: null}
+        this.menuContent.push(infoPlaceholder)
 
-          var xhr3 = new XMLHttpRequest();
-          xhr3.open("GET", "/api/protein/"+ d.id +"/", false); // false makes the request synchronous
-          xhr3.send(null);
+        const infoUrl = this.settings.type_chromosome === 'extant'
+            ? `${this.settings.oma_api_url}/api/protein/${d.id}/`
+            : `${this.settings.oma_api_url}/api/hog/${d.id}/${level_api}`
 
-          if (xhr3.status === 200) {
-            const data = JSON.parse(xhr3.responseText);
+        this.fetch_oma_json(infoUrl).then(data => {
+          if (requestId !== this.menuRequestId) return
+          const idx = this.menuContent.indexOf(infoPlaceholder)
+          if (idx === -1) return
 
-            this.menuContent.push({type: 'text', content: '<b>External Id:</b>' + data.canonicalid  , click:null, style: null})
-            this.menuContent.push({type: 'text', content: '<b>Sequence length:</b>' + data.sequence_length , click:null, style: null})
-
+          if (!data) {
+            this.menuContent.splice(idx, 1)
+            return
           }
 
+          const items = this.settings.type_chromosome === 'extant'
+              ? [
+                {type: 'text', content: '<b>External ID:</b> ' + data.canonicalid, click:null, style: null},
+                {type: 'text', content: '<b>Description:</b> ' + data.description, click:null, style: null},{type: 'text', content: '<b>Sequence length:</b> ' + data.sequence_length, click:null, style: null},
+                {type: 'text', content: '<b>Protein length:</b> ' + data.sequence_length, click:null, style: null},
+              ]
+              : [
+                {type: 'text', content: '<b>Description:</b> ' + data[0].description, click:null, style: null},
+              ]
 
-        }
-        else if (this.settings.type_chromosome === 'ancestral') {
-
-          var level_api = this.settings.level ? '?level=' + this.settings.level : ''
-
-
-            var xhr = new XMLHttpRequest();
-            xhr.open("GET", "/api/hog/"+ d.id +"/" + level_api, false); // false makes the request synchronous
-            xhr.send(null);
-
-            if (xhr.status === 200) {
-              const data = JSON.parse(xhr.responseText);
-
-              this.menuContent.push({type: 'text', content: '<b>Description:</b>' + data[0].description , click:null, style: null})
-
-
-            }
-
-
-        }
+          this.menuContent.splice(idx, 1, ...items)
+        })
       }
 
-      // Display additional data metrics, grouped into a "Gene" section (incl. start/end
-      // position), sorted alphabetically for easier reading. Edge-derived metrics are shown
-      // in their own tooltip via showEdgeMenu, not here.
-      const addSectionHeader = (title) => {
-        this.menuContent.push({type: 'text', content: `<hr style="margin-top: 0.1em; margin-bottom: 0.2em"> <b>${title}</b> <hr style="margin-top: 0.1em; margin-bottom: 0.2em">`, click:null, style: null})
-      }
-
+      // Display additional data metrics (incl. start/end position), sorted alphabetically for
+      // easier reading. Edge-derived metrics are shown in their own tooltip via showEdgeMenu.
       const { geneKeys } = this.collect_metric_keys()
-
-      addSectionHeader('Gene')
 
       if (this.datum.type === 'extant') {
         this.menuContent.push({type: 'text', content: `<span><b>Start:</b> ${this.pretty_locus(d.start)}</span>`, click:null, style: null})
@@ -855,55 +857,57 @@ export default {
       }
 
       Array.from(geneKeys).sort((a, b) => a.localeCompare(b)).forEach(key => {
-        this.menuContent.push({type: 'text', content: `<span><b>${key}:</b> ${d.data[key]}</span>`, click:null, style: null})
+        this.menuContent.push({type: 'text', content: `<span><b>${this.format_metric_label(key)}:</b> ${this.format_metric_value(d.data[key])}</span>`, click:null, style: null})
       })
 
-      // add Action button
+      // add Action buttons - compact icon+label row (see action_button) rather than three
+      // stacked full-width "Open ..." buttons, so they read at a glance and don't push the
+      // GO annotations section further down
       if (this.settings.oma) {
 
-        if (this.settings.type_chromosome === 'extant') {
+        this.menuContent.push(this.action_button('bi-diagram-3', 'Synteny', () => this.callback_click_synteny(d.id)))
+        this.menuContent.push(this.action_button('bi-info-circle', 'Details', () => this.callback_click_detail(d.id)))
 
-          this.menuContent.push({class: 'btn btn-sm btn-outline-dark', content: 'Open Local Synteny' , click:() => {this.callback_click_synteny(d.id) }, style: 'margin: 8px;text-align: center'})
-          this.menuContent.push({class: 'btn btn-sm btn-outline-dark', content: 'Open Gene details' , click:() => {this.callback_click_detail(d.id) }, style: 'margin: 8px;text-align: center'})
-
-        }
-
-
-        else if (this.settings.type_chromosome === 'ancestral') {
-
-          this.menuContent.push({class: 'btn btn-sm btn-outline-dark', content: 'Open Local Synteny' , click:() => {this.callback_click_synteny(d.id) }, style: 'margin: 8px; text-align: center'})
-          this.menuContent.push({class: 'btn btn-sm btn-outline-dark', content: 'Open Gene details' , click:() => {this.callback_click_detail(d.id) }, style: 'margin: 8px;text-align: center'})
-          this.menuContent.push( {class: 'btn btn-sm btn-outline-dark', content:`Open HOG members` , click: () => {this.callback_click_members(d.id) }, style: 'margin: 8px;text-align: center'})
-
+        if (this.settings.type_chromosome === 'ancestral') {
+          this.menuContent.push(this.action_button('bi-table', 'Members', () => this.callback_click_members(d.id)))
         }
 
       }
 
-      // add GOA section
+      // add GOA section - async, with its own spinner placeholder while it loads
       if (this.settings.oma) {
 
-        const url = this.settings.type_chromosome === 'ancestral' ? "/api/hog/" + d.id + "/gene_ontology/" + level_api : "/api/protein/" + d.id + "/gene_ontology/"
+        const goPlaceholder = {type: 'text', content: this.oma_loading_html('Loading GO annotations…'), click:null, style: null}
+        this.menuContent.push(goPlaceholder)
 
-        var xhr2 = new XMLHttpRequest();
-        xhr2.open("GET", url, false); // false makes the request synchronous
-        xhr2.send(null);
+        const url = this.settings.type_chromosome === 'ancestral'
+            ? `${this.settings.oma_api_url}/api/hog/${d.id}/gene_ontology/${level_api}`
+            : `${this.settings.oma_api_url}/api/protein/${d.id}/gene_ontology/`
 
-        if (xhr2.status === 200) {
-          const data_annotation = JSON.parse(xhr2.responseText);
+        this.fetch_oma_json(url).then(data_annotation => {
+          if (requestId !== this.menuRequestId) return
+          const idx = this.menuContent.indexOf(goPlaceholder)
+          if (idx === -1) return
 
-          this.menuContent.push( {type: 'text', content:` <hr style="margin-top: 0.1em; margin-bottom: 0.2em"> <b>GO annotations</b>  <hr style="margin-top: 0.1em; margin-bottom: 0.2em">`, click:null, style: null})
+          if (!data_annotation) {
+            this.menuContent.splice(idx, 1)
+            return
+          }
+
+          const items = []
+          items.push({type: 'text', content: ` <hr style="margin-top: 0.1em; margin-bottom: 0.2em"> <b>GO annotations</b>  <hr style="margin-top: 0.1em; margin-bottom: 0.2em">`, click:null, style: null})
 
           const goa = this.process_annotation(data_annotation)
 
-          var add_annotation_by_aspect = (array_aspect, text) => {
+          const add_annotation_by_aspect = (array_aspect, text) => {
             var sbio = Array.from(array_aspect).sort(function (a, b) {
               return parseFloat(b.score) - parseFloat(a.score);
             })
-            this.menuContent.push( {type: 'text', content:'<b> ' + text + ' </b>: ' , click:null, style: null})
+            items.push({type: 'text', content: '<span style="margin-top: 0.5em"><b> ' + text + ' </b>: </span>', click:null, style: null})
 
             for (var sbioKey in sbio) {
               let go = sbio[sbioKey]
-              this.menuContent.push( {type: 'text', content:'<b> - ' + go.GO_term + '</b>: ' + go.name  , click:null, style: null})
+              items.push({type: 'text', content: '<b> - ' + go.GO_term + '</b>: ' + go.name, click:null, style: null})
             }
           }
 
@@ -911,8 +915,8 @@ export default {
           add_annotation_by_aspect(goa.cell, 'Cellular Component')
           add_annotation_by_aspect(goa.mol, 'Molecular Function')
 
-
-        }
+          this.menuContent.splice(idx, 1, ...items)
+        })
       }
 
 
@@ -920,6 +924,30 @@ export default {
 
 
 
+    },
+    // fetch helper for OMA endpoints: resolves to the parsed JSON, or null on any failure
+    // (network error, non-2xx status, bad JSON) so callers can drop their placeholder silently,
+    // matching the old synchronous code's "only add content on HTTP 200" behavior
+    fetch_oma_json(url) {
+      return fetch(url)
+          .then(response => response.ok ? response.json() : null)
+          .catch(() => null)
+    },
+    oma_loading_html(label) {
+      return `<span class="oma-loading"><span class="oma-spinner"></span>${label}</span>`
+    },
+    // builds a compact icon+label tooltip button that navigates out to the main OMA app -
+    // the trailing box-arrow-up-right icon flags that as an external destination, unlike the
+    // rest of the tooltip which is inline info. `inline: true` is read by the template to lay
+    // consecutive action buttons out in a row instead of one per line.
+    action_button(icon, label, onClick) {
+      return {
+        class: 'btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-1',
+        content: `<i class="bi ${icon}"></i><span>${label}</span><i class="bi bi-box-arrow-up-right" style="font-size: 0.7em;"></i>`,
+        click: onClick,
+        style: null,
+        inline: true,
+      }
     },
     // splits every key seen across the dataset's data_metrics into gene-level keys and
     // edge-level keys (the '_edge' suffix added by GenomeViewer's bind_links_to_nodes),
@@ -944,11 +972,27 @@ export default {
 
       return { geneKeys, edgeKeys }
     },
+    // data field names are raw dataset keys (e.g. 'completeness_score') - display them as
+    // words rather than snake_case
+    format_metric_label(key) {
+      return key.replace(/_/g, ' ')
+    },
+    // raw numeric metrics can carry long floating-point noise (e.g. 0.8330000042915344) -
+    // round to 3 decimal places for display; integers (e.g. nr_members) are left untouched
+    format_metric_value(value) {
+      if (typeof value === 'number' && !Number.isInteger(value)) {
+        return value.toFixed(3)
+      }
+      return value
+    },
     showEdgeMenu(event, leftGene, rightGene) {
 
       this.menuPosition = {x: event.pageX, y: event.pageY};
 
       this.menuContent = []
+
+      // invalidates any still-pending OMA fetch from a previously opened gene tooltip
+      this.menuRequestId++
 
       this.menuContent.push({class: 'title', content: `${leftGene.id} — ${rightGene.id}`, click:null, style: "font-size: 1.2em; font-weight: bold; margin-bottom: 0.5em;text-align: center;"})
 
@@ -958,8 +1002,8 @@ export default {
         this.menuContent.push({type: 'text', content: '<span>No edge data available</span>', click:null, style: null})
       } else {
         Array.from(edgeKeys).sort((a, b) => a.localeCompare(b)).forEach(key => {
-          const label = key.slice(0, -'_edge'.length)
-          this.menuContent.push({type: 'text', content: `<span><b>${label}:</b> ${leftGene.data[key]}</span>`, click:null, style: null})
+          const label = this.format_metric_label(key.slice(0, -'_edge'.length))
+          this.menuContent.push({type: 'text', content: `<span><b>${label}:</b> ${this.format_metric_value(leftGene.data[key])}</span>`, click:null, style: null})
         })
       }
 
@@ -1009,6 +1053,18 @@ export default {
     },
     hideMenu() {
       this.menuVisible = false;
+      // invalidates any still-pending OMA fetch so it can't splice content into a closed menu
+      this.menuRequestId++
+    },
+    handleClickOutside(event) {
+      // clicks on the excerpt SVG are excluded too, not just the menu itself: they're what
+      // switches the tooltip from one gene/edge to another, and should update it in place
+      // rather than close it
+      const menuEl = this.$refs.menuEl
+      const svgExcerpt = this.$refs.svg_excerpt
+      if (menuEl && menuEl.contains(event.target)) return
+      if (svgExcerpt && svgExcerpt.contains(event.target)) return
+      this.hideMenu()
     },
     toggleSvgDisplay() {
       const svgExcerpt = this.$refs.svg_excerpt;
@@ -1084,6 +1140,9 @@ export default {
     this.render_overview();
 
   },
+  beforeUnmount() {
+    document.removeEventListener('click', this.handleClickOutside)
+  },
   data() {
     return {
       CurrentWidth: null,
@@ -1092,6 +1151,7 @@ export default {
       menuVisible: false,
       menuPosition: {x: 0, y: 0},
       menuContent: [],
+      menuRequestId: 0,
       color_scheme: this.settings.color_scheme_list[this.settings.color_scheme],
       color_scheme_edge: this.settings.color_scheme_list[this.settings.color_scheme_edge],
       gene_arrow_box_ratio: 0.2,
@@ -1150,6 +1210,30 @@ display: block;
   border: none;
   font-size: 1.5em;
   cursor: pointer;
+}
+
+/* :deep() is required here because this markup is injected via v-html (menuContent items),
+   so it never receives the scoped data-v-* attribute plain scoped selectors rely on. */
+:deep(.oma-loading) {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: rgb(99,99,102);
+  font-style: italic;
+}
+
+:deep(.oma-spinner) {
+  display: inline-block;
+  width: 11px;
+  height: 11px;
+  border: 2px solid #ccc;
+  border-top-color: #666;
+  border-radius: 50%;
+  animation: oma-spin 0.8s linear infinite;
+}
+
+@keyframes oma-spin {
+  to { transform: rotate(360deg); }
 }
 
 
