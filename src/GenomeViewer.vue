@@ -60,8 +60,9 @@ export default {
         'searchQueries': [],
         'searchQueriesIds': [],
 
-        // COLOR
+        // COLOR (per-channel: Gene color and Edge color each keep their own scheme)
         color_scheme: 'Viridis',
+        color_scheme_edge: 'Viridis',
         color_scheme_list: Object.keys(d3_chrome)
             .filter(key => key.startsWith('interpolate'))
             .reduce((acc, key) => {
@@ -165,9 +166,6 @@ export default {
         case 'update-color-edge':
           this.toggleColorEdge(payload);
           break;
-        case 'update-color-scheme':
-          this.toggleColorScheme(payload);
-          break;
         case 'search':
           this.search_query(payload);
           break;
@@ -193,9 +191,6 @@ export default {
     search_query(queryId) {
       this.scrollToRect(queryId);
 
-    },
-    toggleColorScheme(selectedOption) {
-      this.settings.color_scheme = selectedOption;
     },
     toggleColor(selectedOption) {
       this.settings.colorAccessor = selectedOption;
@@ -736,6 +731,15 @@ export default {
             analysis.numerical[key].min = this.settings.force_extent_numerical[key].min;
             analysis.numerical[key].max = this.settings.force_extent_numerical[key].max;
         }
+        else {
+          // Default the active range to the same 1st-99th percentile window the violin draws,
+          // rather than the true min/max - otherwise the legend's numbers (true extremes) and its
+          // violin shape (percentile-trimmed) tell two different stories about the same metric.
+          // Genes past this window still render (clamped to the endpoint color), they just don't
+          // stretch the color scale's dynamic range across a couple of outliers.
+          analysis.numerical[key].min = analysis.numerical[key].density.domainMin;
+          analysis.numerical[key].max = analysis.numerical[key].density.domainMax;
+        }
 
       });
 
@@ -744,8 +748,15 @@ export default {
     },
     computeDensity(values) {
       const SAMPLES = 64;
-      const domainMin = Math.min(...values);
-      const domainMax = Math.max(...values);
+
+      // The violin's axis is deliberately the 1st-99th percentile, not the true min/max: a single
+      // extreme outlier (common in biological count data) would otherwise squeeze the whole
+      // meaningful distribution into a few unusable pixels at one edge of the plot. The KDE itself
+      // still sums over every value below, so mass beyond this window still shapes the curve near
+      // its edges - it just isn't drawn past that point.
+      const sorted = values.slice().sort((a, b) => a - b);
+      const domainMin = d3.quantileSorted(sorted, 0.01);
+      const domainMax = d3.quantileSorted(sorted, 0.99);
 
       if (values.length < 2 || domainMin === domainMax) {
         return {points: [], domainMin, domainMax, maxDensity: 0};

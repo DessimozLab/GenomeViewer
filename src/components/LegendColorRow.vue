@@ -16,16 +16,29 @@
           spanStyle="font-size: 13px; font-weight: 600;"
       />
 
-      <RangeBar
-          v-if="localAccessor && extent"
-          ref="rangeBar"
-          :text="localAccessor"
-          :min_base="extent.min"
-          :max_base="extent.max"
-          :density="extent.density"
-          :gradientStops="gradientStops"
-          @update-extent="$emit('update-extent', $event)"
-      />
+      <template v-if="localAccessor && extent">
+
+        <ViolinRange
+            :text="localAccessor"
+            :min_base="extent.min"
+            :max_base="extent.max"
+            :density="extent.density"
+            @update-extent="$emit('update-extent', $event)"
+        />
+
+        <RangeBar
+            ref="rangeBar"
+            :text="localAccessor"
+            :min_base="extent.min"
+            :max_base="extent.max"
+            :gradientStops="gradientStops"
+            :colorSchemeOptions="colorSchemeOptions"
+            :colorScheme="colorScheme"
+            @update-extent="$emit('update-extent', $event)"
+            @update:colorScheme="onSchemeChange"
+        />
+
+      </template>
 
       <span v-else class="legend-row-empty">No metric selected</span>
 
@@ -39,12 +52,14 @@
 import * as d3 from 'd3';
 import DropdownButton from './DropdownButton.vue';
 import RangeBar from './RangeBar.vue';
+import ViolinRange from './ViolinRange.vue';
 
 export default {
   name: "LegendColorRow",
   components: {
     DropdownButton,
     RangeBar,
+    ViolinRange,
   },
   props: {
     id: String,
@@ -57,7 +72,7 @@ export default {
     accessor: [String, null],
     settings: Object,
   },
-  emits: ['update:accessor', 'update-extent'],
+  emits: ['update:accessor', 'update-extent', 'update-color-scheme'],
   data() {
     return {
       localAccessor: this.accessor,
@@ -67,12 +82,26 @@ export default {
     extent() {
       return this.settings.data_metrics.numerical[this.localAccessor];
     },
+    // color scheme is per-channel: Gene color and Edge color each keep their own, independent
+    // of which metric currently occupies that channel
+    schemeKey() {
+      return this.forEdge ? 'color_scheme_edge' : 'color_scheme';
+    },
+    colorScheme() {
+      return this.settings[this.schemeKey];
+    },
     colorInterpolator() {
-      return this.settings.color_scheme_list[this.settings.color_scheme];
+      return this.settings.color_scheme_list[this.colorScheme];
     },
     gradientStops() {
-      const steps = 10;
-      return Array.from({length: steps}, (_, i) => d3.color(this.colorInterpolator(i / (steps - 1))).formatHex());
+      return this.sampleGradient(this.colorInterpolator);
+    },
+    // {name, stops}[] so the scheme dropdown can render a preview swatch per option, not just its name
+    colorSchemeOptions() {
+      return Object.keys(this.settings.color_scheme_list).map(name => ({
+        name,
+        stops: this.sampleGradient(this.settings.color_scheme_list[name]),
+      }));
     },
   },
   watch: {
@@ -84,6 +113,12 @@ export default {
     },
   },
   methods: {
+    sampleGradient(interpolator, steps = 10) {
+      return Array.from({length: steps}, (_, i) => d3.color(interpolator(i / (steps - 1))).formatHex());
+    },
+    onSchemeChange(scheme) {
+      this.$emit('update-color-scheme', {key: this.schemeKey, value: scheme});
+    },
     trackEl() {
       return this.$refs.rangeBar ? this.$refs.rangeBar.$refs.track : null;
     },

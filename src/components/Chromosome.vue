@@ -148,6 +148,13 @@ export default {
       },
       deep: true
     },
+    'settings.color_scheme_edge': {
+      handler: function () {
+        this.color_scheme_edge = this.settings.color_scheme_list[this.settings.color_scheme_edge]
+        this.update_renders()
+      },
+      deep: true
+    },
     'settings.colorAccessor_edge': {
       handler: function () {
         this.update_renders()
@@ -161,13 +168,15 @@ export default {
       const extent = this.settings.data_metrics.numerical[this.settings.colorAccessor]
       return d3.scaleSequential()
           .domain([extent.min, extent.max])
+          .clamp(true)
           .interpolator(this.color_scheme);
     },
     color_scale_edge() {
       const extent = this.settings.data_metrics.numerical[this.settings.colorAccessor_edge]
       return d3.scaleSequential()
           .domain([extent.min, extent.max])
-          .interpolator(this.color_scheme);
+          .clamp(true)
+          .interpolator(this.color_scheme_edge);
     },
 
     // GETTER
@@ -1073,6 +1082,7 @@ export default {
       menuPosition: {x: 0, y: 0},
       menuContent: [],
       color_scheme: this.settings.color_scheme_list[this.settings.color_scheme],
+      color_scheme_edge: this.settings.color_scheme_list[this.settings.color_scheme_edge],
       min_direction_triangle_width: 5,
       max_direction_triangle_width: 10,
       direction_triangle_width_ratio: 0.2,

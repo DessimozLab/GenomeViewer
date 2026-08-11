@@ -78,48 +78,40 @@
 
     <div id="toggleDiv" class="collapse show" style="margin:12px; padding: 24px; background-color: rgba(200,200,200,0.1)">
 
-      <div class="d-flex justify-content-end">
+      <div class="legend-grid">
 
-        <DropdownButton
-            id="button_color_scheme"
-            v-model="localColorScheme"
-            :options="localColorList"
-            icon="bi bi-palette2"
-            text="Scheme"
-            :no_default="true"
-            :no_indicator="true"
+        <LegendColorRow
+            id="button_color"
+            ref="legendColorRow"
+            label="Gene color"
+            v-model:accessor="localColorAccessor"
+            :options="statesColorGenes"
+            :settings="settings"
+            @update-extent="updateExtent"
+            @update-color-scheme="onColorSchemeChange"
+        />
+
+        <LegendColorRow
+            id="button_color_edge"
+            label="Edge color"
+            v-model:accessor="localColorAccessorEdge"
+            :options="statesColorGenes"
+            :forEdge="true"
+            :settings="settings"
+            @update-extent="updateExtent"
+            @update-color-scheme="onColorSchemeChange"
+        />
+
+        <LegendHeightRow
+            id="button_height"
+            ref="legendHeightRow"
+            v-model:accessor="localHeightAccessor"
+            :options="statesColorGenes"
+            :settings="settings"
+            @update-extent="updateExtent"
         />
 
       </div>
-
-      <LegendColorRow
-          id="button_color"
-          ref="legendColorRow"
-          label="Gene color"
-          v-model:accessor="localColorAccessor"
-          :options="statesColorGenes"
-          :settings="settings"
-          @update-extent="updateExtent"
-      />
-
-      <LegendColorRow
-          id="button_color_edge"
-          label="Edge color"
-          v-model:accessor="localColorAccessorEdge"
-          :options="statesColorGenes"
-          :forEdge="true"
-          :settings="settings"
-          @update-extent="updateExtent"
-      />
-
-      <LegendHeightRow
-          id="button_height"
-          ref="legendHeightRow"
-          v-model:accessor="localHeightAccessor"
-          :options="statesColorGenes"
-          :settings="settings"
-          @update-extent="updateExtent"
-      />
 
     </div>
 
@@ -129,7 +121,6 @@
 
 <script>
 import ButtonWithIcon from './ButtonWithIcon.vue';
-import DropdownButton from './DropdownButton.vue';
 import SelectedGenesModal from './SelectedGenesModal.vue';
 import LegendColorRow from './LegendColorRow.vue';
 import LegendHeightRow from './LegendHeightRow.vue';
@@ -139,7 +130,6 @@ export default {
   name: 'SettingsUI',
   components: {
     ButtonWithIcon,
-    DropdownButton,
     SelectedGenesModal,
     LegendColorRow,
     LegendHeightRow,
@@ -156,8 +146,6 @@ export default {
       localColorAccessor: this.settings_base.colorAccessor,
       localHeightAccessor: this.settings_base.heightAccessor,
       localColorAccessorEdge: this.settings_base.colorAccessor_edge,
-      localColorScheme: this.settings_base.color_scheme,
-      localColorList: Object.keys(this.settings_base.color_scheme_list),
     };
   },
   watch: {
@@ -169,9 +157,6 @@ export default {
     },
     localColorAccessorEdge(newVal) {
       this.emitEvent('update-color-edge', newVal);
-    },
-    localColorScheme(newVal) {
-      this.emitEvent('update-color-scheme', newVal);
     },
   },
   computed: {
@@ -248,6 +233,9 @@ export default {
       this.settings.data_metrics.numerical[accessor].min = min;
       this.settings.data_metrics.numerical[accessor].max = max;
     },
+    onColorSchemeChange({ key, value }) {
+      this.settings[key] = value;
+    },
     handleSearch() {
       this.emitEvent('search', this.searchQuery);
 
@@ -267,6 +255,18 @@ export default {
   z-index: 1000;
   background-color: white;
   padding: 12px;
+}
+
+.legend-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(320px, 1fr));
+  gap: 8px 32px;
+}
+
+@media (max-width: 720px) {
+  .legend-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 </style>

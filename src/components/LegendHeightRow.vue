@@ -15,19 +15,19 @@
           spanStyle="font-size: 13px; font-weight: 600;"
       />
 
-      <div v-if="localAccessor && extent" class="legend-height-body">
+      <template v-if="localAccessor && extent">
 
-        <RangeBar
-            ref="rangeBar"
+        <ViolinRange
             :text="localAccessor"
             :min_base="extent.min"
             :max_base="extent.max"
             :density="extent.density"
+            :width="width"
             @update-extent="onUpdateExtent"
         />
 
-        <svg class="size-ramp" :width="rampWidth" :height="rampHeight">
-          <g v-for="(sample, index) in samples" :key="index" :transform="`translate(${index * barSpacing}, 0)`">
+        <svg ref="heightBars" class="height-bars" :width="width" :height="rampHeight">
+          <g v-for="(sample, index) in samples" :key="index" :transform="`translate(${(index + 0.5) * barSpacing - barWidth / 2}, 0)`">
             <rect
                 :x="0" :y="rampHeight - sample.px - baseline"
                 :width="barWidth" :height="sample.px" rx="2"
@@ -39,7 +39,7 @@
           </g>
         </svg>
 
-      </div>
+      </template>
 
       <span v-else class="legend-row-empty">No metric selected</span>
 
@@ -52,13 +52,13 @@
 
 import * as d3 from 'd3';
 import DropdownButton from './DropdownButton.vue';
-import RangeBar from './RangeBar.vue';
+import ViolinRange from './ViolinRange.vue';
 
 export default {
   name: "LegendHeightRow",
   components: {
     DropdownButton,
-    RangeBar,
+    ViolinRange,
   },
   props: {
     id: String,
@@ -72,31 +72,38 @@ export default {
       localAccessor: this.accessor,
       currentMin: null,
       currentMax: null,
-      barWidth: 16,
-      barSpacing: 26,
+      width: 280,
       baseline: 2,
     };
   },
   computed: {
-    // matches settings.svgHeight so a sample bar's pixel height is directly comparable to the
-    // actual gene boxes it's illustrating in the excerpt view, not just proportionally equivalent
-    maxBarPx() {
-      return this.settings.svgHeight;
-    },
     extent() {
       return this.settings.data_metrics.numerical[this.localAccessor];
     },
+    maxBarPx() {
+      return this.settings.svgHeight;
+    },
+    // "nicely rounded" tick values (d3's standard axis-tick algorithm) within the current
+    // min/max, rather than the raw min/mid/max - matches how a chart axis would label this range
+    niceValues() {
+      if (this.currentMin == null || this.currentMax == null || this.currentMin === this.currentMax) {
+        return this.currentMin == null ? [] : [this.currentMin];
+      }
+      return d3.scaleLinear().domain([this.currentMin, this.currentMax]).ticks(6);
+    },
     samples() {
-      if (this.currentMin == null || this.currentMax == null) {
+      if (!this.niceValues.length) {
         return [];
       }
       const span = this.currentMax - this.currentMin;
-      const mid = (this.currentMin + this.currentMax) / 2;
       const px = (value) => span === 0 ? this.maxBarPx : Math.max(2, ((value - this.currentMin) / span) * this.maxBarPx);
-      return [this.currentMin, mid, this.currentMax].map((value) => ({value, px: px(value)}));
+      return this.niceValues.map((value) => ({value, px: px(value)}));
     },
-    rampWidth() {
-      return this.samples.length * this.barSpacing;
+    barSpacing() {
+      return this.samples.length ? this.width / this.samples.length : this.width;
+    },
+    barWidth() {
+      return Math.min(30, this.barSpacing * 0.6);
     },
     rampHeight() {
       return this.maxBarPx + this.baseline + 14;
@@ -126,7 +133,7 @@ export default {
       return d3.format(",.4~g")(value);
     },
     trackEl() {
-      return this.$refs.rangeBar ? this.$refs.rangeBar.$refs.track : null;
+      return this.$refs.heightBars || null;
     },
   },
   created() {
@@ -157,12 +164,6 @@ export default {
   flex-direction: column;
   align-items: flex-start;
   gap: 2px;
-}
-
-.legend-height-body {
-  display: flex;
-  align-items: flex-start;
-  gap: 16px;
 }
 
 .legend-row-empty {
