@@ -75,7 +75,7 @@ export default {
     // of any gene-level 'age'); both label and unit are optional and fall back to the raw key
     optionLabel(option) {
       if (option == null) {
-        return 'Default';
+        return 'No scale';
       }
       const meta = this.metric_meta[option];
       if (!meta) {
