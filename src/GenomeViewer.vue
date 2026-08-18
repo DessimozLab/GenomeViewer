@@ -202,6 +202,15 @@ export default {
     search_query(queryId) {
       this.scrollToRect(queryId);
 
+      const index = this.sortedData.findIndex(datum => datum.nodes.some(node => node.id === queryId));
+      if (index === -1) {
+        return;
+      }
+
+      const chromosomeRef = this.$refs.chromosomeViewer[index];
+      if (chromosomeRef) {
+        chromosomeRef.centerOnGeneId(queryId);
+      }
     },
     toggleColor(selectedOption) {
       this.settings.colorAccessor = selectedOption;

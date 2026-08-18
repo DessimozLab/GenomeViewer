@@ -341,6 +341,23 @@ export default {
       const k = this.parentWidth / (x1 - x0)
       this.emitEvent('updateZoom', d3.zoomIdentity.scale(k).translate(-x0, 0))
     },
+    // called by GenomeViewer.vue when a search match lands on a gene in this chromosome - re-centers
+    // the excerpt on that gene while keeping the current zoom level (window width) unchanged, so a
+    // search doesn't also reset how zoomed-in the user currently is
+    centerOnGeneId(geneId) {
+      const node = this.datum.nodes.find(d => d.id === geneId)
+      if (!node) {
+        return false
+      }
+
+      const scale = d3.scaleLinear().domain([this.domain_min_current, this.domain_max_current]).range([0, this.parentWidth])
+      const mid = scale((this.d_start(node) + this.d_end(node)) / 2)
+      const k = this.datum.currentZoom ? this.datum.currentZoom.k : 1
+
+      this.emitEvent('updateZoom', d3.zoomIdentity.translate(this.parentWidth / 2 - k * mid, 0).scale(k))
+      this.render_excerpt()
+      return true
+    },
     render_mapper() {
 
       const scale_overview = d3.scaleLinear().clamp(true).domain([this.domain_min_current, this.domain_max_current]).range([0, this.CurrentWidth - 2]);
