@@ -165,16 +165,17 @@ export default {
 <style scoped>
 .legend-row {
   display: flex;
+  flex-direction: column;
   align-items: flex-start;
-  gap: 10px;
+  gap: 2px;
   margin-bottom: 14px;
 }
 
 .legend-row-label {
-  min-width: 90px;
-  text-align: right;
-  padding-top: 2px;
+  text-align: left;
   color: rgb(99, 99, 102);
+  font-size: smaller;
+  font-weight: 600;
 }
 
 .legend-row-body {

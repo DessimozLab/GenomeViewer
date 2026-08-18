@@ -60,15 +60,26 @@
           @click="emitEvent('toggle-sorting')"
       />
 
-      <ButtonWithIcon
-          id="button_selection"
-          :text="modeText"
-          icon="bi bi-hand-index"
-          @click="emitEvent('toggle-mode')"
-      />
+      <div class="btn-group me-2" role="group" aria-label="Interaction mode">
+        <ButtonWithIcon
+            id="button_mode_zoom"
+            :buttonClass="modeButtonClass('zoom')"
+            text="Pan/Zoom"
+            icon="bi bi-hand-index"
+            @click="setMode('zoom')"
+        />
+        <ButtonWithIcon
+            id="button_mode_select"
+            :buttonClass="modeButtonClass('brush')"
+            text="Select"
+            icon="bi bi-bounding-box-circles"
+            @click="setMode('brush')"
+        />
+      </div>
 
       <ButtonWithIcon
-          class="me-2"
+          id="button_legend"
+          :buttonClass="legendButtonClass"
           data-bs-target="#toggleDiv"
           data-bs-toggle="collapse"
           icon="bi bi-highlights"
@@ -209,8 +220,8 @@ export default {
     sortingText() {
       return 'Sort by ' + (this.settings.sorting_chromosome === 'size' ? 'Size' : this.settings.sorting_chromosome === 'number_genes' ? 'Nbr Genes' : 'Name');
     },
-    modeText() {
-      return this.settings.mode === 'zoom' ? 'Zoom/Pan' : 'Selection';
+    legendButtonClass() {
+      return this.legendOpen ? 'btn btn-dark me-2' : 'btn btn-outline-dark me-2';
     },
     selectedGenes() {
       return this.$parent.sortedData.flatMap(datum =>
@@ -261,9 +272,21 @@ export default {
       this.emitEvent('search', this.searchQuery);
 
     },
+    setMode(mode) {
+      if (this.settings.mode !== mode) {
+        this.emitEvent('toggle-mode');
+      }
+    },
+    modeButtonClass(mode) {
+      return this.settings.mode === mode ? 'btn btn-dark' : 'btn btn-outline-dark';
+    },
 
   },
   emits: ['settings-event'],
+  mounted() {
+    this.$refs.toggleDiv.addEventListener('shown.bs.collapse', () => { this.legendOpen = true; });
+    this.$refs.toggleDiv.addEventListener('hidden.bs.collapse', () => { this.legendOpen = false; });
+  },
 }
 </script>
 
@@ -276,15 +299,41 @@ export default {
   z-index: 1000;
   background-color: white;
   padding: 12px;
+  /* the panel is often embedded next to a host-page side menu, so its own rendered width can be
+     much narrower than the browser viewport - size the legend grid off this container's width via
+     container queries, not @media, or a narrow embed would never drop to fewer columns */
+  container-type: inline-size;
+}
+
+.legend-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 4px;
+}
+
+.legend-violin-toggle {
+  color: rgb(150, 150, 150);
+  padding: 2px 6px;
+  text-decoration: none;
+}
+
+.legend-violin-toggle.active {
+  color: rgb(33, 37, 41);
 }
 
 .legend-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(320px, 1fr));
-  gap: 8px 32px;
+  grid-template-columns: repeat(3, minmax(260px, 1fr));
+  gap: 8px 24px;
 }
 
-@media (max-width: 720px) {
+@container (max-width: 850px) {
+  .legend-grid {
+    grid-template-columns: repeat(2, minmax(260px, 1fr));
+  }
+}
+
+@container (max-width: 580px) {
   .legend-grid {
     grid-template-columns: 1fr;
   }
