@@ -77,7 +77,19 @@
 
     </div>
 
-    <div id="toggleDiv" class="collapse show" style="margin:12px; padding: 24px; background-color: rgba(200,200,200,0.1)">
+    <div id="toggleDiv" ref="toggleDiv" class="collapse show" style="margin:12px; padding: 24px; background-color: rgba(200,200,200,0.1)">
+
+      <div class="legend-toolbar">
+        <button
+            type="button"
+            class="btn btn-sm btn-link legend-violin-toggle"
+            :class="{ active: showViolin }"
+            @click="showViolin = !showViolin"
+            :title="showViolin ? 'Hide distribution plot' : 'Show distribution plot'"
+        >
+          <i class="bi bi-sliders"></i>
+        </button>
+      </div>
 
       <div class="legend-grid">
 
@@ -88,6 +100,7 @@
             v-model:accessor="localColorAccessor"
             :options="statesColorGenes"
             :settings="settings"
+            :showViolin="showViolin"
             @update-extent="updateExtent"
             @update-color-scheme="onColorSchemeChange"
         />
@@ -99,6 +112,7 @@
             :options="statesColorGenes"
             :forEdge="true"
             :settings="settings"
+            :showViolin="showViolin"
             @update-extent="updateExtent"
             @update-color-scheme="onColorSchemeChange"
         />
@@ -109,6 +123,7 @@
             v-model:accessor="localHeightAccessor"
             :options="statesColorGenes"
             :settings="settings"
+            :showViolin="showViolin"
             @update-extent="updateExtent"
         />
 
@@ -147,6 +162,11 @@ export default {
       localColorAccessor: this.settings_base.colorAccessor,
       localHeightAccessor: this.settings_base.heightAccessor,
       localColorAccessorEdge: this.settings_base.colorAccessor_edge,
+      // legend collapse starts open ("collapse show" on #toggleDiv below), kept in sync via the
+      // bs.collapse events attached in mounted() so the Legend button's pressed state tracks the
+      // actual panel state rather than duplicating Bootstrap's own open/closed logic
+      legendOpen: true,
+      showViolin: true,
     };
   },
   watch: {

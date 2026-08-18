@@ -20,6 +20,7 @@
       <template v-if="localAccessor && extent">
 
         <ViolinRange
+            v-if="showViolin"
             :text="localAccessor"
             :min_base="extent.min"
             :max_base="extent.max"
@@ -72,6 +73,10 @@ export default {
     },
     accessor: [String, null],
     settings: Object,
+    showViolin: {
+      type: Boolean,
+      default: true,
+    },
   },
   emits: ['update:accessor', 'update-extent', 'update-color-scheme'],
   data() {
