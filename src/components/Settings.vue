@@ -15,8 +15,8 @@
       />
 
       <!-- Search bar and button -->
-      <div class="input-group me-2 " style="width: 300px">
-        <input type="text" class="form-control" v-model="searchQuery" placeholder="Search..." style="height: 100%;">
+      <div class="input-group me-2 search-input-group">
+        <input type="text" class="form-control" v-model="searchQuery" :placeholder="searchPlaceholder" style="height: 100%;">
         <button class="btn btn-outline-dark" type="button" v-if="settings.searchQueries.length > 0" @click="clearHighlights">Clear</button>
         <button class="btn btn-outline-dark" type="button" @click="handleSearch" style="height: 100%;">Highlight</button>
       </div>
@@ -164,6 +164,7 @@ export default {
   props: {
     settings_base: Object,
     statesColorGenes: Array,
+    exampleSearchId: String,
   },
   data() {
     return {
@@ -198,6 +199,9 @@ export default {
     },
     isNotAncestral() {
       return this.settings.type_chromosome !== 'ancestral';
+    },
+    searchPlaceholder() {
+      return this.exampleSearchId ? `Search... e.g. ${this.exampleSearchId}` : 'Search...';
     },
     d_start() {
       return this.settings.type_position === 'loci' ? d => d.start : d => d.index
@@ -305,10 +309,12 @@ export default {
   container-type: inline-size;
 }
 
-.legend-toolbar {
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: 4px;
+.search-input-group {
+  /* flex-basis (not width) drives sizing here so it isn't fighting bootstrap's
+     `.input-group { width: 100% }` - grow-1 lets it claim leftover space in the toolbar row
+     (this row has no other growable sibling), capped so it doesn't get absurd on wide embeds */
+  flex: 1 1 300px;
+  max-width: 520px;
 }
 
 .legend-violin-toggle {

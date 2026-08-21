@@ -4,6 +4,7 @@
       ref="settingsUI"
       :settings_base="settings"
       :statesColorGenes="statesColorGenes"
+      :exampleSearchId="exampleSearchId"
       @settings-event="handleSettingsEvent"
   />
 
@@ -896,6 +897,15 @@ export default {
     domain_max() {
       const acc = this.settings.type_position === 'index' ? 'size_in_genes' : 'size_in_bp'
       return Math.max(...this.sortedData.map(d => d[acc]))
+    },
+    exampleSearchId() {
+      const contig = this.sortedData[1];
+      if (!contig || !contig.nodes || contig.nodes.length === 0) {
+        return '';
+      }
+      // pick a node past the very start of the contig, so the example isn't trivially the first gene
+      const index = Math.min(Math.floor(contig.nodes.length / 3), contig.nodes.length - 1);
+      return contig.nodes[index].id;
     }
   }
 
