@@ -1,7 +1,10 @@
 <template>
   <div class="legend-row">
 
-    <span class="legend-row-label">Gene height</span>
+    <div class="legend-row-label-line">
+      <span class="legend-row-label">Gene height</span>
+      <slot name="header-extra" />
+    </div>
 
     <div class="legend-row-body">
 
@@ -176,6 +179,13 @@ export default {
   color: rgb(99, 99, 102);
   font-size: smaller;
   font-weight: 600;
+}
+
+.legend-row-label-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
 }
 
 .legend-row-body {

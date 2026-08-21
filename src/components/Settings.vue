@@ -88,19 +88,7 @@
 
     </div>
 
-    <div id="toggleDiv" ref="toggleDiv" class="collapse show" style="margin:12px; padding: 24px; background-color: rgba(200,200,200,0.1)">
-
-      <div class="legend-toolbar">
-        <button
-            type="button"
-            class="btn btn-sm btn-link legend-violin-toggle"
-            :class="{ active: showViolin }"
-            @click="showViolin = !showViolin"
-            :title="showViolin ? 'Hide distribution plot' : 'Show distribution plot'"
-        >
-          <i class="bi bi-sliders"></i>
-        </button>
-      </div>
+    <div id="toggleDiv" ref="toggleDiv" class="collapse show" style="margin:12px; padding: 12px 24px; background-color: rgba(200,200,200,0.1)">
 
       <div class="legend-grid">
 
@@ -136,7 +124,19 @@
             :settings="settings"
             :showViolin="showViolin"
             @update-extent="updateExtent"
-        />
+        >
+          <template #header-extra>
+            <button
+                type="button"
+                class="btn btn-sm btn-link legend-violin-toggle"
+                :class="{ active: showViolin }"
+                @click="showViolin = !showViolin"
+                :title="showViolin ? 'Hide distribution plot' : 'Show distribution plot'"
+            >
+              <i class="bi bi-sliders"></i>
+            </button>
+          </template>
+        </LegendHeightRow>
 
       </div>
 
@@ -178,7 +178,7 @@ export default {
       // bs.collapse events attached in mounted() so the Legend button's pressed state tracks the
       // actual panel state rather than duplicating Bootstrap's own open/closed logic
       legendOpen: true,
-      showViolin: true,
+      showViolin: false,
     };
   },
   watch: {
