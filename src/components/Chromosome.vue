@@ -31,14 +31,14 @@
            id="download_svg"
            icon="null"
            text=".SVG"
-           @click="this.downloadSVG"
+           @click="this.emitEvent('download-svg')"
        />
 
        <ButtonWithIcon
            id="download_png"
            icon="null"
            text=".PNG"
-           @click="this.downloadPNG"
+           @click="this.emitEvent('download-png')"
        />
 
      </div>
@@ -242,77 +242,6 @@ export default {
     callback_click_members(test) {
       return  this.settings.callback_click_members(test)
     },
-    combineSVGs() {
-      const svgElements = [
-        this.$refs.svg_overview,
-        this.$refs.svg_mapper,
-        this.$refs.svg_excerpt
-      ];
-
-      const padding = 10; // Add padding
-      const combinedSVG = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-      combinedSVG.setAttribute("xmlns", "http://www.w3.org/2000/svg");
-      combinedSVG.setAttribute("width", this.parentWidth + padding * 2);
-      combinedSVG.setAttribute("height", this.settings.svgHeight_overview + this.settings.svgHeight_mapper + this.settings.svgHeight + padding * 2);
-
-      let yOffset = padding;
-      svgElements.forEach(svg => {
-        const clonedSVG = svg.cloneNode(true);
-        clonedSVG.setAttribute("y", yOffset);
-        clonedSVG.setAttribute("x", padding); // Add padding to x position
-        combinedSVG.appendChild(clonedSVG);
-        yOffset += parseFloat(svg.getAttribute("height"));
-      });
-
-      return combinedSVG;
-    },
-    downloadSVG() {
-      const combinedSVG = this.combineSVGs();
-      const serializer = new XMLSerializer();
-      const svgBlob = new Blob([serializer.serializeToString(combinedSVG)], { type: "image/svg+xml;charset=utf-8" });
-      const url = URL.createObjectURL(svgBlob);
-
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = "chromosome_viewer_" + this.chromosome_name + ".svg";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-    },
-    downloadPNG() {
-      const combinedSVG = this.combineSVGs();
-      const serializer = new XMLSerializer();
-      const svgString = serializer.serializeToString(combinedSVG);
-      const canvas = document.createElement("canvas");
-      const context = canvas.getContext("2d");
-      const img = new Image();
-
-      canvas.width = combinedSVG.getAttribute("width");
-      canvas.height = combinedSVG.getAttribute("height");
-
-      // Set the background color to white
-      context.fillStyle = "#FFFFFF";
-      context.fillRect(0, 0, canvas.width, canvas.height);
-
-
-      img.onload = () => {
-        context.drawImage(img, 0, 0);
-        canvas.toBlob(blob => {
-          const url = URL.createObjectURL(blob);
-          const link = document.createElement("a");
-          link.href = url;
-          link.download = "chromosome_viewer_" + this.chromosome_name + ".png";
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-          URL.revokeObjectURL(url);
-        }, "image/png");
-      };
-
-      img.src = "data:image/svg+xml;base64," + btoa(svgString);
-    },
-
     // RENDER
     applyDefaultExcerptZoom() {
       // only kicks in on first mount, while currentZoom is still untouched by the user

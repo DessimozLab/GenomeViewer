@@ -106,6 +106,7 @@
 
         <LegendColorRow
             id="button_color_edge"
+            ref="legendColorRowEdge"
             label="Edge color"
             v-model:accessor="localColorAccessorEdge"
             :options="statesColorGenes"

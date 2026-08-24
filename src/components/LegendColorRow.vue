@@ -21,6 +21,7 @@
 
         <ViolinRange
             v-if="showViolin"
+            ref="violin"
             :text="localAccessor"
             :min_base="extent.min"
             :max_base="extent.max"
@@ -139,6 +140,12 @@ export default {
     },
     trackEl() {
       return this.$refs.rangeBar ? this.$refs.rangeBar.$refs.track : null;
+    },
+    // null when the violin toggle is off, or when it's on but has no domain to draw (ViolinRange's
+    // own root v-if then renders a comment node instead of an <svg>)
+    violinEl() {
+      const el = this.$refs.violin && this.$refs.violin.$el;
+      return el && el.tagName === 'svg' ? el : null;
     },
   },
 };

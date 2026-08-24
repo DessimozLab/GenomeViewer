@@ -30,6 +30,8 @@ import * as d3_chrome from 'd3-scale-chromatic';
 import SettingsUI from './components/Settings.vue'
 import ChromosomeViewer from './components/Chromosome.vue'
 
+const SVG_NS = "http://www.w3.org/2000/svg";
+
 export default {
   name: 'GenomeViewer',
   components: {
@@ -150,6 +152,12 @@ export default {
           this.$refs.chromosomeViewer[index].render_overview();
 
           break;
+        case 'download-svg':
+          this.downloadChromosomeSVG(index);
+          break;
+        case 'download-png':
+          this.downloadChromosomePNG(index);
+          break;
       }
     },
     handleSettingsEvent({eventType, payload}) {
@@ -235,110 +243,311 @@ export default {
     toggleHide() {
       this.settings.hide = this.settings.hide ? false : true
     },
+    // The overview bar's gene-height scale (`settings.svgHeight_overview`) is intentionally much
+    // shorter on-screen than the excerpt's (`settings.svgHeight`), which is also what the height
+    // legend is built at - so a straight clone of the overview would render its bars at half the
+    // height a same-value bar gets in the legend/excerpt. Re-scaling the clone's vertical axis by
+    // that same ratio (a single non-uniform <g transform="scale(1,r)">, which scales both rect
+    // heights and their translate() offsets together) makes it read at the same visual scale
+    // without touching the live on-screen overview rendering. Only relevant when a height metric
+    // (and therefore a height legend to match) is actually active - otherwise bars are uniform and
+    // there's nothing to keep in scale, so leave the overview at its native export size.
+    overviewExportScale() {
+      return this.settings.heightAccessor ? this.settings.svgHeight / this.settings.svgHeight_overview : 1;
+    },
+    scaleOverviewForExport(svgOverviewEl) {
+      const scale = this.overviewExportScale();
+      const clone = svgOverviewEl.cloneNode(true);
+      const originalHeight = parseFloat(svgOverviewEl.getAttribute("height")) || this.settings.svgHeight_overview;
+      clone.setAttribute("height", originalHeight * scale);
+
+      const group = document.createElementNS(SVG_NS, "g");
+      group.setAttribute("transform", `scale(1, ${scale})`);
+      while (clone.firstChild) {
+        group.appendChild(clone.firstChild);
+      }
+      clone.appendChild(group);
+
+      return clone;
+    },
+    // Attaches `textElement` to a throwaway <svg> just long enough to measure its rendered width
+    // (getBBox needs layout, which only happens once attached to the document), then hands the same
+    // node back detached and ready to be placed in the real export SVG.
+    measureSVGTextWidth(textElement) {
+      const tempSVG = document.createElementNS(SVG_NS, "svg");
+      document.body.appendChild(tempSVG);
+      tempSVG.appendChild(textElement);
+      const width = textElement.getBBox().width;
+      document.body.removeChild(tempSVG);
+      return width;
+    },
+    makeSVGText(content, {x = 0, y = 0, anchor = 'start', size = 'smaller', weight = null, fill = null} = {}) {
+      const text = document.createElementNS(SVG_NS, "text");
+      text.setAttribute("x", x);
+      text.setAttribute("y", y);
+      text.setAttribute("text-anchor", anchor);
+      text.setAttribute("font-size", size);
+      if (weight) {
+        text.setAttribute("font-weight", weight);
+      }
+      if (fill) {
+        text.setAttribute("fill", fill);
+      }
+      text.textContent = content;
+      return text;
+    },
+    // The violin's drag handles/lines/labels are styled via scoped CSS classes (see ViolinRange.vue)
+    // that only exist in the live app's stylesheet, so a bare clone would lose them once detached
+    // into a standalone export SVG. Re-apply the same look as inline attributes, and drop the drag
+    // handles themselves since they're an interaction affordance with nothing to show in a static
+    // export. Returns null when the violin toggle is off or there's no domain to draw.
+    buildViolinGroup(rowInstance) {
+      const violinEl = rowInstance.violinEl();
+      if (!violinEl) {
+        return null;
+      }
+
+      const clone = violinEl.cloneNode(true);
+      clone.querySelectorAll('.handle-grip').forEach(el => el.remove());
+      clone.querySelectorAll('.handle-line').forEach(el => {
+        el.setAttribute('stroke', 'rgb(99, 99, 102)');
+        el.setAttribute('stroke-width', '1');
+        el.setAttribute('stroke-dasharray', '2 2');
+      });
+      clone.querySelectorAll('.handle-label').forEach(el => {
+        el.setAttribute('font-size', '10');
+        el.setAttribute('fill', 'rgb(99, 99, 102)');
+      });
+
+      return {node: clone, width: parseFloat(clone.getAttribute("width")), height: parseFloat(clone.getAttribute("height"))};
+    },
+    // One legend column: a bold row title ("Gene color"/"Edge color"), the metric's display name,
+    // an optional violin, the color gradient bar, and 5 evenly-spaced tick labels (min/25/50/75/max)
+    // underneath - mirroring RangeBar.vue's own on-screen ticks, which are plain positioned HTML and
+    // so can't just be cloned into an SVG export. Returns null when this channel has no metric picked.
+    buildColorLegendColumn(rowInstance, label) {
+      if (!rowInstance || !rowInstance.localAccessor || !rowInstance.extent) {
+        return null;
+      }
+      const track = rowInstance.trackEl();
+      if (!track) {
+        return null;
+      }
+
+      const extent = rowInstance.extent;
+      const barWidth = track.width.animVal.value;
+      const gutter = 6;
+
+      const column = document.createElementNS(SVG_NS, "g");
+      let y = 0;
+      let width = barWidth;
+
+      const titleText = this.makeSVGText(label, {y: 10, weight: '600', fill: 'rgb(99, 99, 102)'});
+      width = Math.max(width, this.measureSVGTextWidth(titleText));
+      column.appendChild(titleText);
+      y += 10 + gutter;
+
+      const metricText = this.makeSVGText(rowInstance.buttonText, {y: y + 12, size: '13', weight: '600'});
+      width = Math.max(width, this.measureSVGTextWidth(metricText));
+      column.appendChild(metricText);
+      y += 12 + gutter;
+
+      const violin = this.buildViolinGroup(rowInstance);
+      if (violin) {
+        violin.node.setAttribute("transform", `translate(0, ${y})`);
+        column.appendChild(violin.node);
+        width = Math.max(width, violin.width);
+        y += violin.height + gutter;
+      }
+
+      const barGroup = document.createElementNS(SVG_NS, "g");
+      barGroup.setAttribute("transform", `translate(0, ${y})`);
+      barGroup.appendChild(track.cloneNode(true));
+      column.appendChild(barGroup);
+      y += track.height.animVal.value;
+
+      const format = d3.format(",.4~g");
+      const anchors = ['start', 'middle', 'middle', 'middle', 'end'];
+      [0, 0.25, 0.5, 0.75, 1].forEach((fraction, i) => {
+        const value = extent.min + fraction * (extent.max - extent.min);
+        column.appendChild(this.makeSVGText(format(value), {x: fraction * barWidth, y: y + 14, anchor: anchors[i]}));
+      });
+      y += 14 + gutter;
+
+      return {node: column, width, height: y};
+    },
+    // "Gene height" column: title, metric name, optional violin, then the height-ramp clone - which
+    // (unlike the color bar) already carries its own per-sample value labels, so no extra ticks
+    // needed here.
+    buildHeightLegendColumn(rowInstance, label) {
+      if (!rowInstance || !rowInstance.localAccessor || !rowInstance.extent) {
+        return null;
+      }
+      const ramp = rowInstance.trackEl();
+      if (!ramp) {
+        return null;
+      }
+
+      const gutter = 6;
+      const column = document.createElementNS(SVG_NS, "g");
+      let y = 0;
+      let width = parseFloat(ramp.getAttribute("width"));
+
+      const titleText = this.makeSVGText(label, {y: 10, weight: '600', fill: 'rgb(99, 99, 102)'});
+      width = Math.max(width, this.measureSVGTextWidth(titleText));
+      column.appendChild(titleText);
+      y += 10 + gutter;
+
+      const metricText = this.makeSVGText(rowInstance.buttonText, {y: y + 12, size: '13', weight: '600'});
+      width = Math.max(width, this.measureSVGTextWidth(metricText));
+      column.appendChild(metricText);
+      y += 12 + gutter;
+
+      const violin = this.buildViolinGroup(rowInstance);
+      if (violin) {
+        violin.node.setAttribute("transform", `translate(0, ${y})`);
+        column.appendChild(violin.node);
+        width = Math.max(width, violin.width);
+        y += violin.height + gutter;
+      }
+
+      const rampGroup = document.createElementNS(SVG_NS, "g");
+      rampGroup.setAttribute("transform", `translate(0, ${y})`);
+      rampGroup.appendChild(ramp.cloneNode(true));
+      column.appendChild(rampGroup);
+      y += parseFloat(ramp.getAttribute("height"));
+
+      return {node: column, width, height: y};
+    },
+    // Lays out whichever of Gene color / Edge color / Gene height are active side by side, left to
+    // right, as one <g> the caller can translate as a unit. { node: null, width: 0, height: 0 } when
+    // none of the three channels is in use.
+    buildLegendGroup() {
+      const gutter = 32;
+      const refs = this.$refs.settingsUI.$refs;
+
+      const columns = [
+        this.buildColorLegendColumn(refs.legendColorRow, refs.legendColorRow ? refs.legendColorRow.label : 'Gene color'),
+        this.buildColorLegendColumn(refs.legendColorRowEdge, refs.legendColorRowEdge ? refs.legendColorRowEdge.label : 'Edge color'),
+        this.buildHeightLegendColumn(refs.legendHeightRow, 'Gene height'),
+      ].filter(Boolean);
+
+      if (!columns.length) {
+        return {node: null, width: 0, height: 0};
+      }
+
+      const group = document.createElementNS(SVG_NS, "g");
+      let x = 0;
+      let height = 0;
+      columns.forEach(column => {
+        column.node.setAttribute("transform", `translate(${x}, 0)`);
+        group.appendChild(column.node);
+        x += column.width + gutter;
+        height = Math.max(height, column.height);
+      });
+
+      return {node: group, width: x - gutter, height};
+    },
+    triggerSVGDownload(svgElement, filename) {
+      const serializer = new XMLSerializer();
+      const svgBlob = new Blob([serializer.serializeToString(svgElement)], { type: "image/svg+xml;charset=utf-8" });
+      const url = URL.createObjectURL(svgBlob);
+
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    },
+    triggerPNGDownload(svgElement, filename) {
+      const serializer = new XMLSerializer();
+      const svgString = serializer.serializeToString(svgElement);
+      const canvas = document.createElement("canvas");
+      const context = canvas.getContext("2d");
+      const img = new Image();
+
+      canvas.width = svgElement.getAttribute("width");
+      canvas.height = svgElement.getAttribute("height");
+
+      context.fillStyle = "#FFFFFF";
+      context.fillRect(0, 0, canvas.width, canvas.height);
+
+      img.onload = () => {
+        context.drawImage(img, 0, 0);
+        canvas.toBlob(blob => {
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          link.href = url;
+          link.download = filename;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+        }, "image/png");
+      };
+
+      img.src = "data:image/svg+xml;base64," + btoa(svgString);
+    },
     combineSVGsWithLegend() {
       const width_name = 200;
       const width_desc = 200;
       const gutter = 20;
       const vgutter = 10;
+      const rowHeight = this.settings.svgHeight_overview * this.overviewExportScale() + 2 * vgutter;
+
+      const legend = this.buildLegendGroup();
+      const legendBlockHeight = legend.node ? legend.height + 2 * gutter : gutter;
 
       const svgElements = this.$refs.chromosomeViewer.map((chromosome,index) => {
 
         const svgOverview = chromosome.$refs['svg_overview'];
 
-        const combinedSVG = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-        combinedSVG.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+        const combinedSVG = document.createElementNS(SVG_NS, "svg");
+        combinedSVG.setAttribute("xmlns", SVG_NS);
         combinedSVG.setAttribute("width", chromosome.parentWidth + 200 + 3*gutter + width_desc);
-        combinedSVG.setAttribute("height", this.settings.svgHeight_overview + 2*vgutter);
+        combinedSVG.setAttribute("height", rowHeight);
 
-        const textElement = document.createElementNS("http://www.w3.org/2000/svg", "text");
-        textElement.setAttribute("y", 3 * vgutter);
+        const textElement = document.createElementNS(SVG_NS, "text");
         textElement.textContent = chromosome.chromosome_name;
+        const textWidth = this.measureSVGTextWidth(textElement);
 
-        // Create a temporary SVG to measure the text width
-        const tempSVG = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-        document.body.appendChild(tempSVG);
-        tempSVG.appendChild(textElement);
-        const textWidth = textElement.getBBox().width;
-        document.body.removeChild(tempSVG);
-
-        // Set the x attribute to align the text to the right end
+        // Set the x/y attributes to align the text to the right end
+        textElement.setAttribute("y", 3 * vgutter);
         textElement.setAttribute("x", width_name - textWidth);
         combinedSVG.appendChild(textElement);
 
-        const clonedSVG = svgOverview.cloneNode(true);
+        const clonedSVG = this.scaleOverviewForExport(svgOverview);
         clonedSVG.setAttribute("x",   width_name + gutter);
         clonedSVG.querySelectorAll('.line_extent_overview').forEach(line => {
           line.style.display = 'none';
         });
         combinedSVG.appendChild(clonedSVG);
 
-        const textElement2 = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        const textElement2 = document.createElementNS(SVG_NS, "text");
         textElement2.setAttribute("y", 3 * vgutter);
         textElement2.textContent = chromosome.chromosome_genes_desc;
         textElement2.setAttribute("x", width_name + 2*gutter + svgOverview.width.animVal.value);
         combinedSVG.appendChild(textElement2);
 
-
-        var offset_legend = 0.5
-        if (this.settings.colorAccessor){ offset_legend += 1 }
-        if (this.settings.heightAccessor){ offset_legend += 1.5 }
-
-        combinedSVG.setAttribute("y", (offset_legend + index) * (this.settings.svgHeight_overview + gutter));
+        combinedSVG.setAttribute("y", legendBlockHeight + index * rowHeight);
 
         return combinedSVG;
       });
 
-      const finalSVG = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-      finalSVG.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+      const finalSVG = document.createElementNS(SVG_NS, "svg");
+      finalSVG.setAttribute("xmlns", SVG_NS);
 
-      finalSVG.setAttribute("width", this.$refs.chromosomeViewer[0].parentWidth + width_name + 3*gutter + width_desc);
-      finalSVG.setAttribute("height", (svgElements.length+3) * (this.settings.svgHeight_overview + 2*vgutter));
+      const rowWidth = this.$refs.chromosomeViewer[0].parentWidth + width_name + 3*gutter + width_desc;
+      const legendWidth = legend.node ? width_name + gutter + legend.width : 0;
+      finalSVG.setAttribute("width", Math.max(rowWidth, legendWidth));
+      finalSVG.setAttribute("height", legendBlockHeight + svgElements.length * rowHeight);
 
-      // Add legend if present
-      if (this.settings.colorAccessor){
-
-        const settingsUI = this.$refs.settingsUI;
-        const legend = settingsUI.$refs.legendColorRow.trackEl();
-        const extent = this.settings.data_metrics.numerical[this.settings.colorAccessor];
-
-        const legendSVG = legend.cloneNode(true);
-        legendSVG.setAttribute("x", width_name + gutter);
-        legendSVG.setAttribute("y",  gutter);
-        finalSVG.appendChild(legendSVG);
-
-        // min extent
-        const textLegend = document.createElementNS("http://www.w3.org/2000/svg", "text");
-        textLegend.setAttribute("y", gutter + 40);
-        textLegend.textContent = extent.min;
-        textLegend.setAttribute("x", width_name);
-        textLegend.setAttribute("text-anchor", "end");
-        textLegend.setAttribute("font-size", "smaller");
-        finalSVG.appendChild(textLegend);
-
-        // max extent
-        const textLegend2 = document.createElementNS("http://www.w3.org/2000/svg", "text");
-        textLegend2.setAttribute("y", gutter + 40);
-        textLegend2.textContent = extent.max;
-        textLegend.setAttribute("font-size", "smaller");
-        textLegend2.setAttribute("x", width_name + gutter + legend.width.animVal.value);
-        finalSVG.appendChild(textLegend2);
-
+      if (legend.node) {
+        legend.node.setAttribute("transform", `translate(${width_name + gutter}, ${gutter})`);
+        finalSVG.appendChild(legend.node);
       }
-
-      if (this.settings.heightAccessor){
-
-        var offset_legend = this.settings.colorAccessor ? 2*gutter + 20 : 0
-
-        const settingsUI = this.$refs.settingsUI;
-        const legend = settingsUI.$refs.legendHeightRow.trackEl();
-
-        const legendSVG = legend.cloneNode(true);
-        legendSVG.setAttribute("x", width_name + gutter);
-        legendSVG.setAttribute("y",  offset_legend + gutter);
-        finalSVG.appendChild(legendSVG);
-
-      }
-
 
       svgElements.forEach((svg) => {
             finalSVG.appendChild(svg)
@@ -351,17 +560,54 @@ export default {
     },
     exportSVG() {
         const combinedSVG = this.combineSVGsWithLegend();
-        const serializer = new XMLSerializer();
-        const svgBlob = new Blob([serializer.serializeToString(combinedSVG)], { type: "image/svg+xml;charset=utf-8" });
-        const url = URL.createObjectURL(svgBlob);
+        this.triggerSVGDownload(combinedSVG, "genome_viewer.svg");
+    },
+    combineChromosomeSVGWithLegend(index) {
+      const chromosome = this.$refs.chromosomeViewer[index];
+      const padding = 10;
+      const gutter = 20;
 
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = "chromosome_viewer_" + this.chromosome_name + ".svg";
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
+      const panelElements = [
+        this.scaleOverviewForExport(chromosome.$refs.svg_overview),
+        chromosome.$refs.svg_mapper.cloneNode(true),
+        chromosome.$refs.svg_excerpt.cloneNode(true),
+      ];
+
+      const legend = this.buildLegendGroup();
+
+      const contentWidth = Math.max(chromosome.parentWidth, legend.width);
+      const panelsHeight = panelElements.reduce((sum, el) => sum + parseFloat(el.getAttribute("height")), 0);
+      const legendBlockHeight = legend.node ? legend.height + gutter : 0;
+
+      const combinedSVG = document.createElementNS(SVG_NS, "svg");
+      combinedSVG.setAttribute("xmlns", SVG_NS);
+      combinedSVG.setAttribute("width", contentWidth + padding * 2);
+      combinedSVG.setAttribute("height", panelsHeight + legendBlockHeight + padding * 2);
+
+      let yOffset = padding;
+      panelElements.forEach(el => {
+        el.setAttribute("x", padding);
+        el.setAttribute("y", yOffset);
+        combinedSVG.appendChild(el);
+        yOffset += parseFloat(el.getAttribute("height"));
+      });
+
+      if (legend.node) {
+        legend.node.setAttribute("transform", `translate(${padding}, ${yOffset + gutter})`);
+        combinedSVG.appendChild(legend.node);
+      }
+
+      return combinedSVG;
+    },
+    downloadChromosomeSVG(index) {
+      const chromosome = this.$refs.chromosomeViewer[index];
+      const combinedSVG = this.combineChromosomeSVGWithLegend(index);
+      this.triggerSVGDownload(combinedSVG, "chromosome_viewer_" + chromosome.chromosome_name + ".svg");
+    },
+    downloadChromosomePNG(index) {
+      const chromosome = this.$refs.chromosomeViewer[index];
+      const combinedSVG = this.combineChromosomeSVGWithLegend(index);
+      this.triggerPNGDownload(combinedSVG, "chromosome_viewer_" + chromosome.chromosome_name + ".png");
     },
 
     // FACTORY METHODS
