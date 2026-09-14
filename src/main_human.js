@@ -6,7 +6,8 @@ var settings = {
     'oma': true,
     'oma_api_url': 'https://omabrowser.org',
     'sorting_chromosome': 'size',
-        'remove_outliers_legend': ['weight'],
+    'remove_outliers_legend': ['weight'],
+    'exclusion_list_edges': ['weight'],
 }
 
 fetch('/oma_human.json')

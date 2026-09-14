@@ -1109,10 +1109,20 @@ export default {
     },
     configure_settings_user() {
 
+      // keys whose user-provided value should be unioned with the default array
+      // rather than replacing it outright, so callers can add exclusions without
+      // having to also repeat the built-in ones (id/chromosome/start/end/...)
+      const mergeable_arrays = ['exclusion_list', 'exclusion_list_edges'];
+
       // merge the user settings with the default settings
       for (var key in this.user_settings) {
         var value = this.user_settings[key];
-        this.settings[key] = value;
+
+        if (mergeable_arrays.includes(key) && Array.isArray(value)) {
+          this.settings[key] = [...new Set([...this.settings[key], ...value])];
+        } else {
+          this.settings[key] = value;
+        }
       }
 
       // force the type_position to index if the type_chromosome is ancestral
